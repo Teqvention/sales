@@ -20,13 +20,13 @@ function encryptPassword(password: string): string {
 }
 
 async function main() {
-	// Create admin user
+	// Create admin user (10 rounds for faster serverless auth)
 	const adminPassword = 'admin123'
-	const adminHash = await bcrypt.hash(adminPassword, 12)
+	const adminHash = await bcrypt.hash(adminPassword, 10)
 
 	await db.user.upsert({
 		where: { username: 'admin' },
-		update: {},
+		update: { passwordHash: adminHash }, // Update hash if user exists
 		create: {
 			username: 'admin',
 			passwordHash: adminHash,
@@ -37,11 +37,11 @@ async function main() {
 
 	// Create demo employee
 	const empPassword = 'demo123'
-	const empHash = await bcrypt.hash(empPassword, 12)
+	const empHash = await bcrypt.hash(empPassword, 10)
 
 	await db.user.upsert({
 		where: { username: 'demo' },
-		update: {},
+		update: { passwordHash: empHash }, // Update hash if user exists
 		create: {
 			username: 'demo',
 			passwordHash: empHash,

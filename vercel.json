@@ -1,0 +1,8 @@
+{
+  "regions": ["fra1"],
+  "functions": {
+    "src/**/*.ts": {
+      "maxDuration": 10
+    }
+  }
+}
