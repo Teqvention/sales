@@ -2,11 +2,10 @@
 
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { unstable_cache } from 'next/cache'
 import type { UserStats, EmployeeRanking, LeadOverview } from '@/lib/types'
 
-export async function getAdminStats(): Promise<UserStats> {
-	await requireAdmin()
-
+async function fetchAdminStats(): Promise<UserStats> {
 	const now = new Date()
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	const startOfWeek = new Date(startOfDay)
@@ -41,9 +40,18 @@ export async function getAdminStats(): Promise<UserStats> {
 	}
 }
 
-export async function getEmployeeRankings(): Promise<EmployeeRanking[]> {
-	await requireAdmin()
+const getCachedAdminStats = unstable_cache(
+	fetchAdminStats,
+	['admin-stats'],
+	{ revalidate: 60 }
+)
 
+export async function getAdminStats(): Promise<UserStats> {
+	await requireAdmin()
+	return getCachedAdminStats()
+}
+
+async function fetchEmployeeRankings(): Promise<EmployeeRanking[]> {
 	const users = await db.user.findMany({
 		include: {
 			_count: {
@@ -73,9 +81,18 @@ export async function getEmployeeRankings(): Promise<EmployeeRanking[]> {
 		.sort((a, b) => b.totalCalls - a.totalCalls)
 }
 
-export async function getLeadOverview(): Promise<LeadOverview> {
-	await requireAdmin()
+const getCachedEmployeeRankings = unstable_cache(
+	fetchEmployeeRankings,
+	['employee-rankings'],
+	{ revalidate: 60 }
+)
 
+export async function getEmployeeRankings(): Promise<EmployeeRanking[]> {
+	await requireAdmin()
+	return getCachedEmployeeRankings()
+}
+
+async function fetchLeadOverview(): Promise<LeadOverview> {
 	const [open, noAnswer, noInterest, booked, converted] = await Promise.all([
 		db.lead.count({ where: { status: 'OPEN' } }),
 		db.lead.count({ where: { status: 'NO_ANSWER' } }),
@@ -87,9 +104,18 @@ export async function getLeadOverview(): Promise<LeadOverview> {
 	return { open, noAnswer, noInterest, booked, converted }
 }
 
-export async function getUserStatsById(userId: string): Promise<UserStats> {
-	await requireAdmin()
+const getCachedLeadOverview = unstable_cache(
+	fetchLeadOverview,
+	['lead-overview'],
+	{ revalidate: 60 }
+)
 
+export async function getLeadOverview(): Promise<LeadOverview> {
+	await requireAdmin()
+	return getCachedLeadOverview()
+}
+
+async function fetchUserStatsById(userId: string): Promise<UserStats> {
 	const now = new Date()
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	const startOfWeek = new Date(startOfDay)
@@ -131,4 +157,15 @@ export async function getUserStatsById(userId: string): Promise<UserStats> {
 		conversions,
 		appointmentRate,
 	}
+}
+
+const getCachedUserStatsById = unstable_cache(
+	fetchUserStatsById,
+	['user-stats-by-id'],
+	{ revalidate: 60 }
+)
+
+export async function getUserStatsById(userId: string): Promise<UserStats> {
+	await requireAdmin()
+	return getCachedUserStatsById(userId)
 }

@@ -4,6 +4,7 @@ import { verifyPassword, createSession } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
+	const startTime = Date.now()
 	try {
 		const { username, password } = await request.json()
 
@@ -14,9 +15,11 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		const dbStart = Date.now()
 		const user = await db.user.findUnique({
 			where: { username },
 		})
+		console.log(`[login] db.user.findUnique: ${Date.now() - dbStart}ms`)
 
 		if (!user) {
 			return NextResponse.json(
@@ -25,7 +28,9 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		const pwStart = Date.now()
 		const isValid = await verifyPassword(password, user.passwordHash)
+		console.log(`[login] verifyPassword: ${Date.now() - pwStart}ms`)
 
 		if (!isValid) {
 			return NextResponse.json(
@@ -34,7 +39,9 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		const sessionStart = Date.now()
 		const token = await createSession(user.id)
+		console.log(`[login] createSession: ${Date.now() - sessionStart}ms`)
 
 		const cookieStore = await cookies()
 		cookieStore.set('session', token, {
@@ -45,6 +52,7 @@ export async function POST(request: NextRequest) {
 			path: '/',
 		})
 
+		console.log(`[login] total: ${Date.now() - startTime}ms`)
 		return NextResponse.json({
 			user: {
 				id: user.id,
@@ -52,7 +60,8 @@ export async function POST(request: NextRequest) {
 				role: user.role,
 			},
 		})
-	} catch {
+	} catch (error) {
+		console.error(`[login] error after ${Date.now() - startTime}ms:`, error)
 		return NextResponse.json(
 			{ error: 'Ein Fehler ist aufgetreten' },
 			{ status: 500 }

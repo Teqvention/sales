@@ -2,11 +2,10 @@
 
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { unstable_cache } from 'next/cache'
 import type { UserStats, DailyVolume, MonthlyVolume } from '@/lib/types'
 
-export async function getUserStats(): Promise<UserStats> {
-	const user = await requireAuth()
-
+async function fetchUserStats(userId: string): Promise<UserStats> {
 	const now = new Date()
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	const startOfWeek = new Date(startOfDay)
@@ -15,26 +14,26 @@ export async function getUserStats(): Promise<UserStats> {
 	const [totalCalls, callsToday, callsThisWeek, appointmentsBooked, conversions] =
 		await Promise.all([
 			db.call.count({
-				where: { userId: user.id },
+				where: { userId },
 			}),
 			db.call.count({
 				where: {
-					userId: user.id,
+					userId,
 					createdAt: { gte: startOfDay },
 				},
 			}),
 			db.call.count({
 				where: {
-					userId: user.id,
+					userId,
 					createdAt: { gte: startOfWeek },
 				},
 			}),
 			db.appointment.count({
-				where: { userId: user.id },
+				where: { userId },
 			}),
 			db.appointment.count({
 				where: {
-					userId: user.id,
+					userId,
 					status: 'CONVERTED',
 				},
 			}),
@@ -54,16 +53,25 @@ export async function getUserStats(): Promise<UserStats> {
 	}
 }
 
-export async function getDailyCallVolume(days = 14): Promise<DailyVolume[]> {
-	const user = await requireAuth()
+const getCachedUserStats = unstable_cache(
+	fetchUserStats,
+	['user-stats'],
+	{ revalidate: 60 } // Cache for 60 seconds
+)
 
+export async function getUserStats(): Promise<UserStats> {
+	const user = await requireAuth()
+	return getCachedUserStats(user.id)
+}
+
+async function fetchDailyCallVolume(userId: string, days: number): Promise<DailyVolume[]> {
 	const startDate = new Date()
 	startDate.setDate(startDate.getDate() - days)
 	startDate.setHours(0, 0, 0, 0)
 
 	const calls = await db.call.findMany({
 		where: {
-			userId: user.id,
+			userId,
 			createdAt: { gte: startDate },
 		},
 		select: { createdAt: true },
@@ -92,17 +100,28 @@ export async function getDailyCallVolume(days = 14): Promise<DailyVolume[]> {
 		.sort((a, b) => a.date.localeCompare(b.date))
 }
 
+const getCachedDailyCallVolume = unstable_cache(
+	fetchDailyCallVolume,
+	['daily-call-volume'],
+	{ revalidate: 60 }
+)
+
+export async function getDailyCallVolume(days = 14): Promise<DailyVolume[]> {
+	const user = await requireAuth()
+	return getCachedDailyCallVolume(user.id, days)
+}
+
 export async function getWeeklyCallVolume(): Promise<DailyVolume[]> {
-	return getDailyCallVolume(7)
+	const user = await requireAuth()
+	return getCachedDailyCallVolume(user.id, 7)
 }
 
 export async function getMonthlyCallVolume(): Promise<DailyVolume[]> {
-	return getDailyCallVolume(30)
+	const user = await requireAuth()
+	return getCachedDailyCallVolume(user.id, 30)
 }
 
-export async function getYearlyCallVolume(): Promise<MonthlyVolume[]> {
-	const user = await requireAuth()
-
+async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
 	const startDate = new Date()
 	startDate.setMonth(startDate.getMonth() - 12)
 	startDate.setDate(1)
@@ -110,7 +129,7 @@ export async function getYearlyCallVolume(): Promise<MonthlyVolume[]> {
 
 	const calls = await db.call.findMany({
 		where: {
-			userId: user.id,
+			userId,
 			createdAt: { gte: startDate },
 		},
 		select: { createdAt: true },
@@ -140,4 +159,15 @@ export async function getYearlyCallVolume(): Promise<MonthlyVolume[]> {
 	return Array.from(volumeMap.entries())
 		.map(([month, calls]) => ({ month, calls }))
 		.sort((a, b) => a.month.localeCompare(b.month))
+}
+
+const getCachedYearlyCallVolume = unstable_cache(
+	fetchYearlyCallVolume,
+	['yearly-call-volume'],
+	{ revalidate: 120 } // Cache yearly data longer (2 minutes)
+)
+
+export async function getYearlyCallVolume(): Promise<MonthlyVolume[]> {
+	const user = await requireAuth()
+	return getCachedYearlyCallVolume(user.id)
 }

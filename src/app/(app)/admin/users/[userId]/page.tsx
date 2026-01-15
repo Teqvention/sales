@@ -6,53 +6,22 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { unstable_cache } from 'next/cache'
 import type { DailyVolume, MonthlyVolume } from '@/lib/types'
 
 interface UserDetailPageProps {
 	params: Promise<{ userId: string }>
 }
 
-async function getDailyCallVolumeForUser(userId: string, days = 14): Promise<DailyVolume[]> {
-	const startDate = new Date()
-	startDate.setDate(startDate.getDate() - days)
-	startDate.setHours(0, 0, 0, 0)
-
-	const calls = await db.call.findMany({
-		where: {
-			userId,
-			createdAt: { gte: startDate },
-		},
-		select: { createdAt: true },
-	})
-
-	const volumeMap = new Map<string, number>()
-
-	for (let i = 0; i < days; i++) {
-		const date = new Date()
-		date.setDate(date.getDate() - i)
-		const dateStr = date.toISOString().split('T')[0]
-		volumeMap.set(dateStr, 0)
-	}
-
-	for (const call of calls) {
-		const dateStr = call.createdAt.toISOString().split('T')[0]
-		volumeMap.set(dateStr, (volumeMap.get(dateStr) || 0) + 1)
-	}
-
-	return Array.from(volumeMap.entries())
-		.map(([date, calls]) => ({ date, calls }))
-		.sort((a, b) => a.date.localeCompare(b.date))
+interface AllCallVolumes {
+	weeklyVolume: DailyVolume[]
+	monthlyVolume: DailyVolume[]
+	yearlyVolume: MonthlyVolume[]
 }
 
-async function getWeeklyCallVolumeForUser(userId: string): Promise<DailyVolume[]> {
-	return getDailyCallVolumeForUser(userId, 7)
-}
-
-async function getMonthlyCallVolumeForUser(userId: string): Promise<DailyVolume[]> {
-	return getDailyCallVolumeForUser(userId, 30)
-}
-
-async function getYearlyCallVolumeForUser(userId: string): Promise<MonthlyVolume[]> {
+// Fetch all call data in a single query and compute all volumes
+async function fetchAllCallVolumesForUser(userId: string): Promise<AllCallVolumes> {
+	// Fetch 1 year of data in a single query
 	const startDate = new Date()
 	startDate.setMonth(startDate.getMonth() - 12)
 	startDate.setDate(1)
@@ -66,27 +35,68 @@ async function getYearlyCallVolumeForUser(userId: string): Promise<MonthlyVolume
 		select: { createdAt: true },
 	})
 
-	const volumeMap = new Map<string, number>()
-
-	for (let i = 11; i >= 0; i--) {
-		const date = new Date()
-		date.setMonth(date.getMonth() - i)
-		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-		volumeMap.set(monthStr, 0)
+	// Compute weekly (7 days)
+	const weeklyMap = new Map<string, number>()
+	const now = new Date()
+	for (let i = 0; i < 7; i++) {
+		const date = new Date(now)
+		date.setDate(date.getDate() - i)
+		weeklyMap.set(date.toISOString().split('T')[0], 0)
 	}
 
-	for (const call of calls) {
-		const date = call.createdAt
+	// Compute monthly (30 days)
+	const monthlyMap = new Map<string, number>()
+	for (let i = 0; i < 30; i++) {
+		const date = new Date(now)
+		date.setDate(date.getDate() - i)
+		monthlyMap.set(date.toISOString().split('T')[0], 0)
+	}
+
+	// Compute yearly (12 months)
+	const yearlyMap = new Map<string, number>()
+	for (let i = 11; i >= 0; i--) {
+		const date = new Date(now)
+		date.setMonth(date.getMonth() - i)
 		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-		if (volumeMap.has(monthStr)) {
-			volumeMap.set(monthStr, (volumeMap.get(monthStr) || 0) + 1)
+		yearlyMap.set(monthStr, 0)
+	}
+
+	// Count calls into each bucket
+	for (const call of calls) {
+		const dateStr = call.createdAt.toISOString().split('T')[0]
+		const monthStr = `${call.createdAt.getFullYear()}-${String(call.createdAt.getMonth() + 1).padStart(2, '0')}`
+
+		if (weeklyMap.has(dateStr)) {
+			weeklyMap.set(dateStr, (weeklyMap.get(dateStr) || 0) + 1)
+		}
+		if (monthlyMap.has(dateStr)) {
+			monthlyMap.set(dateStr, (monthlyMap.get(dateStr) || 0) + 1)
+		}
+		if (yearlyMap.has(monthStr)) {
+			yearlyMap.set(monthStr, (yearlyMap.get(monthStr) || 0) + 1)
 		}
 	}
 
-	return Array.from(volumeMap.entries())
+	const weeklyVolume = Array.from(weeklyMap.entries())
+		.map(([date, calls]) => ({ date, calls }))
+		.sort((a, b) => a.date.localeCompare(b.date))
+
+	const monthlyVolume = Array.from(monthlyMap.entries())
+		.map(([date, calls]) => ({ date, calls }))
+		.sort((a, b) => a.date.localeCompare(b.date))
+
+	const yearlyVolume = Array.from(yearlyMap.entries())
 		.map(([month, calls]) => ({ month, calls }))
 		.sort((a, b) => a.month.localeCompare(b.month))
+
+	return { weeklyVolume, monthlyVolume, yearlyVolume }
 }
+
+const getCachedAllCallVolumes = unstable_cache(
+	fetchAllCallVolumesForUser,
+	['admin-user-call-volumes'],
+	{ revalidate: 60 }
+)
 
 export default async function UserDetailPage({ params }: UserDetailPageProps) {
 	await requireAdmin()
@@ -101,12 +111,13 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 		notFound()
 	}
 
-	const [stats, weeklyVolume, monthlyVolume, yearlyVolume] = await Promise.all([
+	// Fetch stats and all volumes in parallel (2 DB operations instead of 4)
+	const [stats, allVolumes] = await Promise.all([
 		getUserStatsById(userId),
-		getWeeklyCallVolumeForUser(userId),
-		getMonthlyCallVolumeForUser(userId),
-		getYearlyCallVolumeForUser(userId),
+		getCachedAllCallVolumes(userId),
 	])
+
+	const { weeklyVolume, monthlyVolume, yearlyVolume } = allVolumes
 
 	return (
 		<div className="flex flex-col gap-6 p-4 md:p-6">
