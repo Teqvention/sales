@@ -3,7 +3,6 @@ import { scrypt, randomBytes, createCipheriv } from 'crypto'
 import { promisify } from 'util'
 
 const db = new PrismaClient()
-const scryptAsync = promisify(scrypt)
 
 const ALGORITHM = 'aes-256-gcm'
 
@@ -24,13 +23,23 @@ function encryptPassword(password: string): string {
 async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16).toString('hex')
 	// better-auth uses these exact scrypt parameters: N=16384, r=16, p=1
-	const derivedKey = (await scryptAsync(password, salt, 64, {
-		N: 16384,
-		r: 16,
-		p: 1,
-		maxmem: 128 * 16384 * 16 * 2,
-	})) as Buffer
-	return `${salt}:${derivedKey.toString('hex')}`
+	return new Promise((resolve, reject) => {
+		scrypt(
+			password,
+			salt,
+			64,
+			{
+				N: 16384,
+				r: 16,
+				p: 1,
+				maxmem: 128 * 16384 * 16 * 2,
+			},
+			(err, derivedKey) => {
+				if (err) reject(err)
+				else resolve(`${salt}:${(derivedKey as Buffer).toString('hex')}`)
+			}
+		)
+	})
 }
 
 function generateId(): string {
