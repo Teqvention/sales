@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { scrypt, randomBytes } from 'crypto'
+import { scrypt, randomBytes, createCipheriv } from 'crypto'
 import { promisify } from 'util'
 
 const db = new PrismaClient()
@@ -11,7 +11,7 @@ function encryptPassword(password: string): string {
 	const key = process.env.ENCRYPTION_KEY || '32-char-secret-key-change-prod!!'
 	const keyBuffer = Buffer.from(key.padEnd(32, '0').slice(0, 32))
 	const iv = randomBytes(16)
-	const cipher = require('crypto').createCipheriv(ALGORITHM, keyBuffer, iv)
+	const cipher = createCipheriv(ALGORITHM, keyBuffer, iv)
 
 	let encrypted = cipher.update(password, 'utf8', 'hex')
 	encrypted += cipher.final('hex')
@@ -20,10 +20,16 @@ function encryptPassword(password: string): string {
 	return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`
 }
 
-// Hash password using better-auth's default method (scrypt)
+// Hash password using better-auth's exact format and scrypt parameters
 async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16).toString('hex')
-	const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer
+	// better-auth uses these exact scrypt parameters: N=16384, r=16, p=1
+	const derivedKey = (await scryptAsync(password, salt, 64, {
+		N: 16384,
+		r: 16,
+		p: 1,
+		maxmem: 128 * 16384 * 16 * 2,
+	})) as Buffer
 	return `${salt}:${derivedKey.toString('hex')}`
 }
 
