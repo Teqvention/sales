@@ -196,7 +196,7 @@ export function AdminDashboardContent({
 												{index + 1}
 											</div>
 										</TableCell>
-										<TableCell className="font-medium">{employee.username}</TableCell>
+										<TableCell className="font-medium">{employee.name}</TableCell>
 										<TableCell className="text-right">{employee.totalCalls}</TableCell>
 										<TableCell className="text-right">{employee.appointments}</TableCell>
 										<TableCell className="text-right">{employee.conversions}</TableCell>

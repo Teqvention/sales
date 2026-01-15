@@ -8,31 +8,71 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+// Better Auth tables
 model User {
-  id            String   @id @default(cuid())
-  username      String   @unique
-  passwordHash  String
-  // Encrypted password for admin display
-  encryptedPw   String?
-  role          String   @default("EMPLOYEE") // EMPLOYEE or ADMIN
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  // Custom fields for this app
+  role          String    @default("EMPLOYEE") // EMPLOYEE or ADMIN
+  encryptedPw   String?   // Encrypted password for admin display
 
   sessions     Session[]
+  accounts     Account[]
   calls        Call[]
   appointments Appointment[]
+
+  @@map("user")
 }
 
 model Session {
-  id        String   @id @default(cuid())
+  id        String   @id
+  expiresAt DateTime
   token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
 
   @@index([userId])
-  @@index([expiresAt])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
 }
 
 model Industry {

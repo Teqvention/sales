@@ -23,7 +23,8 @@ import { updateProfile, changePassword } from '@/app/actions/settings'
 interface SettingsContentProps {
 	user: {
 		id: string
-		username: string
+		name: string
+		email: string
 		role: 'ADMIN' | 'EMPLOYEE'
 	}
 }
@@ -51,7 +52,7 @@ export function SettingsContent({ user }: SettingsContentProps) {
 	const [isPending, startTransition] = useTransition()
 
 	// Account state
-	const [username, setUsername] = useState(user.username)
+	const [name, setName] = useState(user.name)
 	const [currentPassword, setCurrentPassword] = useState('')
 	const [newPassword, setNewPassword] = useState('')
 	const [confirmPassword, setConfirmPassword] = useState('')
@@ -101,11 +102,11 @@ export function SettingsContent({ user }: SettingsContentProps) {
 	}
 
 	function handleUpdateProfile() {
-		if (!username.trim()) return
+		if (!name.trim()) return
 
 		startTransition(async () => {
 			try {
-				await updateProfile(username.trim())
+				await updateProfile(name.trim())
 				setAccountMessage({ type: 'success', text: 'Profil erfolgreich aktualisiert' })
 				router.refresh()
 			} catch (err) {
@@ -171,23 +172,23 @@ export function SettingsContent({ user }: SettingsContentProps) {
 					<CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10 border-b py-4">
 						<div className="flex items-center gap-4">
 							<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-2xl font-semibold">
-								{user.username.slice(0, 2).toUpperCase()}
+								{user.name.slice(0, 2).toUpperCase()}
 							</div>
 							<div>
-								<CardTitle className="text-xl">{user.username}</CardTitle>
+								<CardTitle className="text-xl">{user.name}</CardTitle>
 								<CardDescription>
-									{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'}
+									{user.email} · {user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'}
 								</CardDescription>
 							</div>
 						</div>
 					</CardHeader>
 					<CardContent className="p-6 space-y-4">
 						<div className="space-y-2">
-							<Label htmlFor="username">Benutzername</Label>
+							<Label htmlFor="name">Name</Label>
 							<Input
-								id="username"
-								value={username}
-								onChange={(e) => setUsername(e.target.value)}
+								id="name"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
 								className="h-12 rounded-xl"
 							/>
 						</div>
@@ -202,7 +203,7 @@ export function SettingsContent({ user }: SettingsContentProps) {
 						<Button
 							className="h-12 rounded-xl gap-2"
 							onClick={handleUpdateProfile}
-							disabled={isPending || username === user.username}
+							disabled={isPending || name === user.name}
 						>
 							<Save className="h-4 w-4" />
 							Speichern

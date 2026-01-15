@@ -69,7 +69,7 @@ async function fetchEmployeeRankings(): Promise<EmployeeRanking[]> {
 	return users
 		.map((user) => ({
 			id: user.id,
-			username: user.username,
+			name: user.name,
 			totalCalls: user._count.calls,
 			appointments: user._count.appointments,
 			conversions: user.appointments.length,

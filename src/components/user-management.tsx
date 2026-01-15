@@ -41,22 +41,25 @@ export function UserManagement({ users }: UserManagementProps) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [createOpen, setCreateOpen] = useState(false)
-	const [newUsername, setNewUsername] = useState('')
-	const [createdUser, setCreatedUser] = useState<{ username: string; password: string } | null>(null)
+	const [newName, setNewName] = useState('')
+	const [newEmail, setNewEmail] = useState('')
+	const [createdUser, setCreatedUser] = useState<{ name: string; email: string; password: string } | null>(null)
 	const [copiedId, setCopiedId] = useState<string | null>(null)
 	const [passwordModal, setPasswordModal] = useState<{ userId: string; password: string } | null>(null)
 
 	function handleCreateUser() {
-		if (!newUsername.trim()) return
+		if (!newName.trim() || !newEmail.trim()) return
 
 		startTransition(async () => {
 			try {
-				const user = await createUser(newUsername.trim())
+				const user = await createUser(newName.trim(), newEmail.trim())
 				setCreatedUser({
-					username: user.username,
+					name: user.name,
+					email: user.email,
 					password: user.plainPassword || '',
 				})
-				setNewUsername('')
+				setNewName('')
+				setNewEmail('')
 				router.refresh()
 			} catch (err) {
 				alert(err instanceof Error ? err.message : 'Fehler beim Erstellen')
@@ -111,18 +114,18 @@ export function UserManagement({ users }: UserManagementProps) {
 								<p className="mb-2 text-sm text-muted-foreground">Zugangsdaten</p>
 								<div className="space-y-2">
 									<div className="flex items-center justify-between">
-										<span className="font-medium">Benutzer:</span>
+										<span className="font-medium">E-Mail:</span>
 										<div className="flex items-center gap-2">
 											<code className="rounded bg-background px-2 py-1">
-												{createdUser.username}
+												{createdUser.email}
 											</code>
 											<Button
 												variant="ghost"
 												size="icon"
 												className="h-8 w-8"
-												onClick={() => copyToClipboard(createdUser.username, 'username')}
+												onClick={() => copyToClipboard(createdUser.email, 'email')}
 											>
-												{copiedId === 'username' ? (
+												{copiedId === 'email' ? (
 													<Check className="h-4 w-4 text-success" />
 												) : (
 													<Copy className="h-4 w-4" />
@@ -166,12 +169,23 @@ export function UserManagement({ users }: UserManagementProps) {
 					) : (
 						<div className="space-y-4 py-4">
 							<div className="space-y-2">
-								<Label htmlFor="username">Benutzername</Label>
+								<Label htmlFor="name">Name</Label>
 								<Input
-									id="username"
-									value={newUsername}
-									onChange={(e) => setNewUsername(e.target.value)}
-									placeholder="z.B. max.mustermann"
+									id="name"
+									value={newName}
+									onChange={(e) => setNewName(e.target.value)}
+									placeholder="z.B. Max Mustermann"
+									className="h-12"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="email">E-Mail</Label>
+								<Input
+									id="email"
+									type="email"
+									value={newEmail}
+									onChange={(e) => setNewEmail(e.target.value)}
+									placeholder="z.B. max@beispiel.de"
 									className="h-12"
 								/>
 							</div>
@@ -181,7 +195,7 @@ export function UserManagement({ users }: UserManagementProps) {
 							<DialogFooter>
 								<Button
 									onClick={handleCreateUser}
-									disabled={isPending || !newUsername.trim()}
+									disabled={isPending || !newName.trim() || !newEmail.trim()}
 								>
 									{isPending ? 'Wird erstellt...' : 'Erstellen'}
 								</Button>
@@ -231,7 +245,8 @@ export function UserManagement({ users }: UserManagementProps) {
 						<TableHeader>
 							<TableRow>
 								<TableHead className="w-12"></TableHead>
-								<TableHead>Benutzer</TableHead>
+								<TableHead>Name</TableHead>
+								<TableHead>E-Mail</TableHead>
 								<TableHead>Erstellt</TableHead>
 								<TableHead>Rolle</TableHead>
 								<TableHead className="w-12"></TableHead>
@@ -249,7 +264,8 @@ export function UserManagement({ users }: UserManagementProps) {
 											)}
 										</div>
 									</TableCell>
-									<TableCell className="font-medium">{user.username}</TableCell>
+									<TableCell className="font-medium">{user.name}</TableCell>
+									<TableCell className="text-muted-foreground">{user.email}</TableCell>
 									<TableCell className="text-muted-foreground">
 										{new Date(user.createdAt).toLocaleDateString('de-DE')}
 									</TableCell>

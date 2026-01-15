@@ -1,13 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import {
-	requireAdmin,
-	hashPassword,
-	generatePassword,
-	encryptPassword,
-	decryptPassword,
-} from '@/lib/auth'
+import { auth, requireAdmin, generatePassword, encryptPassword, decryptPassword } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import type { User, UserWithPassword, Role } from '@/lib/types'
 
@@ -17,7 +11,8 @@ export async function getAllUsers(): Promise<User[]> {
 	const users = await db.user.findMany({
 		select: {
 			id: true,
-			username: true,
+			name: true,
+			email: true,
 			role: true,
 			createdAt: true,
 		},
@@ -30,37 +25,49 @@ export async function getAllUsers(): Promise<User[]> {
 	}))
 }
 
-export async function createUser(username: string): Promise<UserWithPassword> {
+export async function createUser(name: string, email: string): Promise<UserWithPassword> {
 	await requireAdmin()
 
-	// Check if username exists
+	// Check if email exists
 	const existing = await db.user.findUnique({
-		where: { username },
+		where: { email },
 	})
 
 	if (existing) {
-		throw new Error('Benutzername bereits vergeben')
+		throw new Error('E-Mail bereits vergeben')
 	}
 
 	const plainPassword = generatePassword()
-	const passwordHash = await hashPassword(plainPassword)
 	const encryptedPw = encryptPassword(plainPassword)
 
-	const user = await db.user.create({
-		data: {
-			username,
-			passwordHash,
-			encryptedPw,
+	// Use better-auth's internal API to create user with proper password hashing
+	const ctx = await auth.api.signUpEmail({
+		body: {
+			email,
+			password: plainPassword,
+			name,
 		},
+		asResponse: false,
+	})
+
+	if (!ctx?.user) {
+		throw new Error('Benutzer konnte nicht erstellt werden')
+	}
+
+	// Update with encrypted password for admin view
+	await db.user.update({
+		where: { id: ctx.user.id },
+		data: { encryptedPw },
 	})
 
 	revalidatePath('/admin/users')
 
 	return {
-		id: user.id,
-		username: user.username,
-		role: user.role as Role,
-		createdAt: user.createdAt,
+		id: ctx.user.id,
+		name: ctx.user.name,
+		email: ctx.user.email,
+		role: 'EMPLOYEE' as Role,
+		createdAt: ctx.user.createdAt,
 		plainPassword,
 	}
 }
@@ -93,12 +100,28 @@ export async function resetUserPassword(userId: string): Promise<string> {
 	await requireAdmin()
 
 	const plainPassword = generatePassword()
-	const passwordHash = await hashPassword(plainPassword)
 	const encryptedPw = encryptPassword(plainPassword)
 
+	// Get the account for this user
+	const account = await db.account.findFirst({
+		where: { userId, providerId: 'credential' },
+	})
+
+	if (account) {
+		// Hash the password using better-auth's context
+		const ctx = await auth.$context
+		const hashedPassword = await ctx.password.hash(plainPassword)
+		
+		await db.account.update({
+			where: { id: account.id },
+			data: { password: hashedPassword },
+		})
+	}
+
+	// Update encrypted password for admin view
 	await db.user.update({
 		where: { id: userId },
-		data: { passwordHash, encryptedPw },
+		data: { encryptedPw },
 	})
 
 	revalidatePath('/admin/users')

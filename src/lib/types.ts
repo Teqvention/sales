@@ -33,7 +33,8 @@ export interface Lead {
 
 export interface User {
 	id: string
-	username: string
+	name: string
+	email: string
 	role: Role
 	createdAt: Date
 }
@@ -63,7 +64,7 @@ export interface MonthlyVolume {
 
 export interface EmployeeRanking {
 	id: string
-	username: string
+	name: string
 	totalCalls: number
 	appointments: number
 	conversions: number

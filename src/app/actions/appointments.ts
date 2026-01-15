@@ -47,7 +47,7 @@ export async function getAppointments(userId?: string) {
 			user: {
 				select: {
 					id: true,
-					username: true,
+					name: true,
 				},
 			},
 		},

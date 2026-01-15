@@ -1,71 +1,76 @@
-import { cookies } from 'next/headers'
+import { betterAuth } from 'better-auth'
+import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from './db'
-import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days
+export const auth = betterAuth({
+	database: prismaAdapter(db, {
+		provider: 'postgresql',
+	}),
+	emailAndPassword: {
+		enabled: true,
+		minPasswordLength: 6,
+	},
+	session: {
+		expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+		updateAge: 24 * 60 * 60, // Update session every 24 hours
+		cookieCache: {
+			enabled: true,
+			maxAge: 5 * 60, // 5 minutes
+		},
+	},
+	user: {
+		additionalFields: {
+			role: {
+				type: 'string',
+				required: false,
+				defaultValue: 'EMPLOYEE',
+				input: false,
+			},
+			encryptedPw: {
+				type: 'string',
+				required: false,
+				input: false,
+			},
+		},
+	},
+})
+
+export type Session = typeof auth.$Infer.Session
+export type User = typeof auth.$Infer.Session.user
 
 export interface SessionUser {
 	id: string
-	username: string
+	name: string
+	email: string
 	role: 'ADMIN' | 'EMPLOYEE'
 }
 
-export interface Session {
-	user: SessionUser
-	expiresAt: Date
-}
-
-export async function createSession(userId: string): Promise<string> {
-	const token = crypto.randomBytes(32).toString('hex')
-	const expiresAt = new Date(Date.now() + SESSION_DURATION)
-
-	await db.session.create({
-		data: {
-			token,
-			userId,
-			expiresAt,
-		},
+export async function getSession() {
+	const headersList = await headers()
+	return auth.api.getSession({
+		headers: headersList,
 	})
-
-	return token
-}
-
-export async function verifySession(token: string): Promise<Session | null> {
-	const session = await db.session.findUnique({
-		where: { token },
-		include: { user: true },
-	})
-
-	if (!session) return null
-	if (session.expiresAt < new Date()) {
-		await db.session.delete({ where: { id: session.id } })
-		return null
-	}
-
-	return {
-		user: {
-			id: session.user.id,
-			username: session.user.username,
-			role: session.user.role as 'ADMIN' | 'EMPLOYEE',
-		},
-		expiresAt: session.expiresAt,
-	}
-}
-
-export async function deleteSession(token: string): Promise<void> {
-	await db.session.deleteMany({ where: { token } })
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
-	const cookieStore = await cookies()
-	const token = cookieStore.get('session')?.value
+	const session = await getSession()
+	if (!session?.user) return null
 
-	if (!token) return null
+	// Fetch additional user data from DB (role)
+	const dbUser = await db.user.findUnique({
+		where: { id: session.user.id },
+		select: { role: true },
+	})
 
-	const session = await verifySession(token)
-	return session?.user ?? null
+	return {
+		id: session.user.id,
+		name: session.user.name,
+		email: session.user.email,
+		role: (dbUser?.role as 'ADMIN' | 'EMPLOYEE') || 'EMPLOYEE',
+	}
 }
 
 export async function requireAuth(): Promise<SessionUser> {
@@ -78,15 +83,6 @@ export async function requireAdmin(): Promise<SessionUser> {
 	const user = await requireAuth()
 	if (user.role !== 'ADMIN') redirect('/calling')
 	return user
-}
-
-// Password hashing (10 rounds is secure and faster for serverless)
-export async function hashPassword(password: string): Promise<string> {
-	return bcrypt.hash(password, 10)
-}
-
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-	return bcrypt.compare(password, hash)
 }
 
 // Simple encryption for recoverable passwords

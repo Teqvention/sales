@@ -13,6 +13,7 @@ import {
 	ChevronsUpDown,
 	Settings,
 } from 'lucide-react'
+import { signOut } from '@/lib/auth-client'
 import {
 	Sidebar,
 	SidebarContent,
@@ -37,7 +38,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 interface AppSidebarProps {
 	user: {
 		id: string
-		username: string
+		name: string
+		email: string
 		role: 'ADMIN' | 'EMPLOYEE'
 	}
 }
@@ -59,7 +61,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 	const router = useRouter()
 
 	async function handleLogout() {
-		await fetch('/api/auth/logout', { method: 'POST' })
+		await signOut()
 		window.location.href = '/login'
 	}
 
@@ -138,11 +140,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
 						>
 							<Avatar className="h-9 w-9 shrink-0">
 								<AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-									{user.username.slice(0, 2).toUpperCase()}
+									{user.name.slice(0, 2).toUpperCase()}
 								</AvatarFallback>
 							</Avatar>
 							<div className="flex flex-1 flex-col items-start text-left">
-								<span className="text-sm font-medium">{user.username}</span>
+								<span className="text-sm font-medium">{user.name}</span>
 								<span className="text-xs text-muted-foreground">
 									{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'}
 								</span>

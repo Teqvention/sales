@@ -104,7 +104,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
 	const user = await db.user.findUnique({
 		where: { id: userId },
-		select: { id: true, username: true, role: true },
+		select: { id: true, name: true, role: true },
 	})
 
 	if (!user) {
@@ -128,7 +128,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 						Zurück
 					</Link>
 				</Button>
-				<h1 className="text-2xl font-semibold">{user.username}</h1>
+				<h1 className="text-2xl font-semibold">{user.name}</h1>
 				<p className="text-muted-foreground">
 					{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} Dashboard
 				</p>

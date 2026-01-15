@@ -1,27 +1,15 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { requireAuth, hashPassword, verifyPassword, encryptPassword } from '@/lib/auth'
+import { auth, requireAuth, encryptPassword } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
-export async function updateProfile(username: string): Promise<void> {
+export async function updateProfile(name: string): Promise<void> {
 	const user = await requireAuth()
-
-	// Check if username is taken by another user
-	const existing = await db.user.findFirst({
-		where: {
-			username,
-			NOT: { id: user.id },
-		},
-	})
-
-	if (existing) {
-		throw new Error('Benutzername bereits vergeben')
-	}
 
 	await db.user.update({
 		where: { id: user.id },
-		data: { username },
+		data: { name },
 	})
 
 	revalidatePath('/settings')
@@ -33,26 +21,40 @@ export async function changePassword(
 ): Promise<void> {
 	const user = await requireAuth()
 
-	const dbUser = await db.user.findUnique({
-		where: { id: user.id },
+	// Get the credential account for this user
+	const account = await db.account.findFirst({
+		where: { userId: user.id, providerId: 'credential' },
 	})
 
-	if (!dbUser) {
-		throw new Error('Benutzer nicht gefunden')
+	if (!account?.password) {
+		throw new Error('Kein Passwort-Account gefunden')
 	}
 
-	const isValid = await verifyPassword(currentPassword, dbUser.passwordHash)
+	// Verify current password using better-auth's context
+	const ctx = await auth.$context
+	const isValid = await ctx.password.verify({
+		hash: account.password,
+		password: currentPassword,
+	})
 
 	if (!isValid) {
 		throw new Error('Aktuelles Passwort ist falsch')
 	}
 
-	const passwordHash = await hashPassword(newPassword)
+	// Hash new password
+	const hashedPassword = await ctx.password.hash(newPassword)
 	const encryptedPw = encryptPassword(newPassword)
 
+	// Update password in account table
+	await db.account.update({
+		where: { id: account.id },
+		data: { password: hashedPassword },
+	})
+
+	// Update encrypted password for admin view
 	await db.user.update({
 		where: { id: user.id },
-		data: { passwordHash, encryptedPw },
+		data: { encryptedPw },
 	})
 
 	revalidatePath('/settings')

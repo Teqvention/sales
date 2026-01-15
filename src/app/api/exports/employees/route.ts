@@ -21,7 +21,8 @@ export async function GET() {
 		})
 
 		const rows = users.map((user) => ({
-			Benutzername: user.username,
+			Name: user.name,
+			'E-Mail': user.email,
 			Rolle: user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter',
 			'Anrufe gesamt': user._count.calls,
 			Termine: user._count.appointments,

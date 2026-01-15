@@ -1,30 +1,22 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
-import { verifySession } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 
 export default async function AppLayout({
 	children,
 }: {
 	children: React.ReactNode
 }) {
-	const cookieStore = await cookies()
-	const sessionToken = cookieStore.get('session')?.value
+	const user = await getCurrentUser()
 
-	if (!sessionToken) {
-		redirect('/login')
-	}
-
-	const session = await verifySession(sessionToken)
-
-	if (!session) {
+	if (!user) {
 		redirect('/login')
 	}
 
 	return (
 		<SidebarProvider>
-			<AppSidebar user={session.user} />
+			<AppSidebar user={user} />
 			<SidebarInset>
 				<header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
 					<SidebarTrigger className="touch-target" />

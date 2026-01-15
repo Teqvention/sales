@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Phone } from 'lucide-react'
+import { signIn } from '@/lib/auth-client'
 
 export default function LoginPage() {
 	const router = useRouter()
-	const [username, setUsername] = useState('')
+	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [error, setError] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
@@ -21,15 +22,13 @@ export default function LoginPage() {
 		setIsLoading(true)
 
 		try {
-			const res = await fetch('/api/auth/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username, password }),
+			const result = await signIn.email({
+				email,
+				password,
 			})
 
-			if (!res.ok) {
-				const data = await res.json()
-				throw new Error(data.error || 'Login fehlgeschlagen')
+			if (result.error) {
+				throw new Error(result.error.message || 'Login fehlgeschlagen')
 			}
 
 			router.push('/calling')
@@ -55,15 +54,15 @@ export default function LoginPage() {
 			<CardContent>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor="username">Benutzername</Label>
+						<Label htmlFor="email">E-Mail</Label>
 						<Input
-							id="username"
-							type="text"
-							value={username}
-							onChange={(e) => setUsername(e.target.value)}
-							placeholder="Benutzername eingeben"
+							id="email"
+							type="email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder="E-Mail eingeben"
 							required
-							autoComplete="username"
+							autoComplete="email"
 							className="h-12 touch-target"
 						/>
 					</div>
