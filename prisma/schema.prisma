@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  passwordHash  String
+  // Encrypted password for admin display
+  encryptedPw   String?
+  role          String   @default("EMPLOYEE") // EMPLOYEE or ADMIN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions     Session[]
+  calls        Call[]
+  appointments Appointment[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Industry {
+  id    String @id @default(cuid())
+  name  String @unique
+  icon  String @default("building")
+  leads Lead[]
+}
+
+model Service {
+  id    String @id @default(cuid())
+  name  String @unique
+  icon  String @default("briefcase")
+  leads Lead[]
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  companyName String
+  phone       String
+  industryId  String?
+  industry    Industry? @relation(fields: [industryId], references: [id])
+  serviceId   String?
+  service     Service?  @relation(fields: [serviceId], references: [id])
+  // Status: OPEN, NO_ANSWER, NO_INTEREST, BOOKED, CONVERTED
+  status      String   @default("OPEN")
+  importBatchId String?
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  calls        Call[]
+  appointments Appointment[]
+}
+
+model Call {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  // Outcome: NO_ANSWER, NO_INTEREST, BOOKED
+  outcome   String
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  calcomEventId String?
+  scheduledAt  DateTime?
+  // Status: BOOKED, CONVERTED, CANCELLED
+  status       String   @default("BOOKED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ImportBatch {
+  id        String   @id @default(cuid())
+  filename  String
+  rowCount  Int
+  createdAt DateTime @default(now())
+  leads     Lead[]
+}
