@@ -6,12 +6,13 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import type { DailyVolume, MonthlyVolume } from '@/lib/types'
 
 interface UserDetailPageProps {
 	params: Promise<{ userId: string }>
 }
 
-async function getDailyCallVolumeForUser(userId: string, days = 14) {
+async function getDailyCallVolumeForUser(userId: string, days = 14): Promise<DailyVolume[]> {
 	const startDate = new Date()
 	startDate.setDate(startDate.getDate() - days)
 	startDate.setHours(0, 0, 0, 0)
@@ -43,6 +44,50 @@ async function getDailyCallVolumeForUser(userId: string, days = 14) {
 		.sort((a, b) => a.date.localeCompare(b.date))
 }
 
+async function getWeeklyCallVolumeForUser(userId: string): Promise<DailyVolume[]> {
+	return getDailyCallVolumeForUser(userId, 7)
+}
+
+async function getMonthlyCallVolumeForUser(userId: string): Promise<DailyVolume[]> {
+	return getDailyCallVolumeForUser(userId, 30)
+}
+
+async function getYearlyCallVolumeForUser(userId: string): Promise<MonthlyVolume[]> {
+	const startDate = new Date()
+	startDate.setMonth(startDate.getMonth() - 12)
+	startDate.setDate(1)
+	startDate.setHours(0, 0, 0, 0)
+
+	const calls = await db.call.findMany({
+		where: {
+			userId,
+			createdAt: { gte: startDate },
+		},
+		select: { createdAt: true },
+	})
+
+	const volumeMap = new Map<string, number>()
+
+	for (let i = 11; i >= 0; i--) {
+		const date = new Date()
+		date.setMonth(date.getMonth() - i)
+		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+		volumeMap.set(monthStr, 0)
+	}
+
+	for (const call of calls) {
+		const date = call.createdAt
+		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+		if (volumeMap.has(monthStr)) {
+			volumeMap.set(monthStr, (volumeMap.get(monthStr) || 0) + 1)
+		}
+	}
+
+	return Array.from(volumeMap.entries())
+		.map(([month, calls]) => ({ month, calls }))
+		.sort((a, b) => a.month.localeCompare(b.month))
+}
+
 export default async function UserDetailPage({ params }: UserDetailPageProps) {
 	await requireAdmin()
 	const { userId } = await params
@@ -56,9 +101,11 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 		notFound()
 	}
 
-	const [stats, dailyVolume] = await Promise.all([
+	const [stats, weeklyVolume, monthlyVolume, yearlyVolume] = await Promise.all([
 		getUserStatsById(userId),
-		getDailyCallVolumeForUser(userId),
+		getWeeklyCallVolumeForUser(userId),
+		getMonthlyCallVolumeForUser(userId),
+		getYearlyCallVolumeForUser(userId),
 	])
 
 	return (
@@ -75,7 +122,12 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 					{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} Dashboard
 				</p>
 			</div>
-			<DashboardContent stats={stats} dailyVolume={dailyVolume} />
+			<DashboardContent
+				stats={stats}
+				weeklyVolume={weeklyVolume}
+				monthlyVolume={monthlyVolume}
+				yearlyVolume={yearlyVolume}
+			/>
 		</div>
 	)
 }

@@ -195,7 +195,7 @@ export function DashboardContent({
 											}}
 											labelStyle={{ color: '#1D1D1F', fontWeight: 600, marginBottom: 4 }}
 											itemStyle={{ color: CHART_COLORS.primary }}
-											formatter={(value: number) => [`${value} Anrufe`, '']}
+											formatter={(value) => [`${value ?? 0} Anrufe`, '']}
 										/>
 										<Bar
 											dataKey="calls"
@@ -254,7 +254,7 @@ export function DashboardContent({
 											}}
 											labelStyle={{ color: '#1D1D1F', fontWeight: 600, marginBottom: 4 }}
 											itemStyle={{ color: CHART_COLORS.primary }}
-											formatter={(value: number) => [`${value} Anrufe`, '']}
+											formatter={(value) => [`${value ?? 0} Anrufe`, '']}
 										/>
 										<Bar
 											dataKey="calls"
@@ -318,7 +318,7 @@ export function DashboardContent({
 											}}
 											labelStyle={{ color: '#1D1D1F', fontWeight: 600, marginBottom: 4 }}
 											itemStyle={{ color: CHART_COLORS.primary }}
-											formatter={(value: number) => [`${value} Anrufe`, '']}
+											formatter={(value) => [`${value ?? 0} Anrufe`, '']}
 										/>
 										<Area
 											type="monotone"
