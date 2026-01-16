@@ -44,7 +44,38 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 	return lead as Lead | null
 }
 
-async function fetchLeads(
+// Internal cached function
+const _getCachedLeads = unstable_cache(
+	async (filters?: {
+		industryId?: string
+		serviceId?: string
+		status?: LeadStatus
+	}) => {
+		const where: Record<string, unknown> = {}
+
+		if (filters?.industryId) where.industryId = filters.industryId
+		if (filters?.serviceId) where.serviceId = filters.serviceId
+		if (filters?.status) where.status = filters.status
+
+		const leads = await db.lead.findMany({
+			where,
+			include: {
+				industry: true,
+				service: true,
+			},
+			orderBy: { createdAt: 'desc' },
+		})
+
+		return leads as Lead[]
+	},
+	['leads-list'],
+	{
+		revalidate: 3600,
+		tags: ['leads-list'],
+	}
+)
+
+export async function getLeads(
 	filters?: {
 		industryId?: string
 		serviceId?: string
@@ -52,33 +83,8 @@ async function fetchLeads(
 	}
 ): Promise<Lead[]> {
 	await requireAdmin()
-
-	const where: Record<string, unknown> = {}
-
-	if (filters?.industryId) where.industryId = filters.industryId
-	if (filters?.serviceId) where.serviceId = filters.serviceId
-	if (filters?.status) where.status = filters.status
-
-	const leads = await db.lead.findMany({
-		where,
-		include: {
-			industry: true,
-			service: true,
-		},
-		orderBy: { createdAt: 'desc' },
-	})
-
-	return leads as Lead[]
+	return _getCachedLeads(filters)
 }
-
-export const getLeads = unstable_cache(
-	fetchLeads,
-	['leads-list'],
-	{
-		revalidate: 3600,
-		tags: ['leads-list']
-	}
-)
 
 export async function recordCall(
 	leadId: string,

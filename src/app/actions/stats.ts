@@ -161,15 +161,15 @@ async function fetchUserStats(userId: string): Promise<UserStats> {
 	}
 }
 
-const getCachedUserStats = unstable_cache(
-	fetchUserStats,
+const _getCachedUserStats = unstable_cache(
+	async (userId: string) => fetchUserStats(userId),
 	['user-stats'],
 	{ revalidate: 3600 } // Cache for 1 hour
 )
 
 export async function getUserStats(): Promise<UserStats> {
 	const user = await requireAuth()
-	return getCachedUserStats(user.id)
+	return _getCachedUserStats(user.id)
 }
 
 async function fetchDailyCallVolume(userId: string, days: number): Promise<DailyVolume[]> {
@@ -230,25 +230,25 @@ async function fetchDailyCallVolume(userId: string, days: number): Promise<Daily
 		.sort((a, b) => a.date.localeCompare(b.date))
 }
 
-const getCachedDailyCallVolume = unstable_cache(
-	fetchDailyCallVolume,
+const _getCachedDailyCallVolume = unstable_cache(
+	async (userId: string, days: number) => fetchDailyCallVolume(userId, days),
 	['daily-call-volume'],
 	{ revalidate: 3600 }
 )
 
 export async function getDailyCallVolume(days = 14): Promise<DailyVolume[]> {
 	const user = await requireAuth()
-	return getCachedDailyCallVolume(user.id, days)
+	return _getCachedDailyCallVolume(user.id, days)
 }
 
 export async function getWeeklyCallVolume(): Promise<DailyVolume[]> {
 	const user = await requireAuth()
-	return getCachedDailyCallVolume(user.id, 7)
+	return _getCachedDailyCallVolume(user.id, 7)
 }
 
 export async function getMonthlyCallVolume(): Promise<DailyVolume[]> {
 	const user = await requireAuth()
-	return getCachedDailyCallVolume(user.id, 30)
+	return _getCachedDailyCallVolume(user.id, 30)
 }
 
 async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
@@ -311,13 +311,13 @@ async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
 		.sort((a, b) => a.month.localeCompare(b.month))
 }
 
-const getCachedYearlyCallVolume = unstable_cache(
-	fetchYearlyCallVolume,
+const _getCachedYearlyCallVolume = unstable_cache(
+	async (userId: string) => fetchYearlyCallVolume(userId),
 	['yearly-call-volume'],
 	{ revalidate: 120 } // Cache yearly data longer (2 minutes)
 )
 
 export async function getYearlyCallVolume(): Promise<MonthlyVolume[]> {
 	const user = await requireAuth()
-	return getCachedYearlyCallVolume(user.id)
+	return _getCachedYearlyCallVolume(user.id)
 }

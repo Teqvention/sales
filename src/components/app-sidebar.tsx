@@ -53,11 +53,12 @@ const employeeNav = [
 ]
 
 const adminNav = [
-	{ title: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield },
 	{ title: 'Benutzer', href: '/admin/users', icon: Users },
 	{ title: 'Leads', href: '/admin/leads', icon: List },
+	{ title: 'Reportings', href: '/admin/feedback', icon: MessageSquarePlus },
 	{ title: 'Import', href: '/admin/import', icon: Upload },
 ]
+
 
 export function AppSidebar({ user }: AppSidebarProps) {
 	const pathname = usePathname()

@@ -5,34 +5,36 @@ import { auth, requireAdmin, generatePassword, encryptPassword, decryptPassword 
 import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
 import type { User, UserWithPassword, Role } from '@/lib/types'
 
-async function fetchAllUsers(): Promise<User[]> {
-	await requireAdmin()
+// Internal cached function
+const _getCachedUsers = unstable_cache(
+	async () => {
+		const users = await db.user.findMany({
+			select: {
+				id: true,
+				name: true,
+				email: true,
+				role: true,
+				createdAt: true,
+			},
+			orderBy: { createdAt: 'desc' },
+		})
 
-	const users = await db.user.findMany({
-		select: {
-			id: true,
-			name: true,
-			email: true,
-			role: true,
-			createdAt: true,
-		},
-		orderBy: { createdAt: 'desc' },
-	})
-
-	return users.map((u) => ({
-		...u,
-		role: u.role as Role,
-	}))
-}
-
-export const getAllUsers = unstable_cache(
-	fetchAllUsers,
+		return users.map((u) => ({
+			...u,
+			role: u.role as Role,
+		}))
+	},
 	['users-list'],
 	{
 		revalidate: 3600,
 		tags: ['users-list'],
 	}
 )
+
+export async function getAllUsers(): Promise<User[]> {
+	await requireAdmin()
+	return _getCachedUsers()
+}
 
 export async function createUser(name: string, email: string): Promise<UserWithPassword> {
 	await requireAdmin()
