@@ -15,6 +15,8 @@ import {
 	Settings,
 	MessageSquarePlus,
 	Ticket,
+	Bell,
+	Megaphone,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import {
@@ -28,6 +30,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuBadge,
 } from '@/components/ui/sidebar'
 import {
 	DropdownMenu,
@@ -46,6 +49,7 @@ interface AppSidebarProps {
 		email: string
 		role: 'ADMIN' | 'EMPLOYEE'
 	}
+	unreadCount?: number
 }
 
 const employeeNav = [
@@ -59,11 +63,12 @@ const adminNav = [
 	{ title: 'Benutzer', href: '/admin/users', icon: Users },
 	{ title: 'Leads', href: '/admin/leads', icon: List },
 	{ title: 'Reportings', href: '/admin/feedback', icon: MessageSquarePlus },
+	{ title: 'Nachrichten', href: '/admin/notifications', icon: Megaphone },
 	{ title: 'Import', href: '/admin/import', icon: Upload },
 ]
 
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -110,6 +115,24 @@ export function AppSidebar({ user }: AppSidebarProps) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
+							{/* Notifications with badge */}
+							<SidebarMenuItem>
+								<SidebarMenuButton
+									asChild
+									isActive={pathname === '/notifications'}
+									className="touch-target"
+								>
+									<Link href="/notifications">
+										<Bell className="h-5 w-5" />
+										<span>Benachrichtigungen</span>
+									</Link>
+								</SidebarMenuButton>
+								{unreadCount > 0 && (
+									<SidebarMenuBadge className="bg-primary text-primary-foreground">
+										{unreadCount > 99 ? '99+' : unreadCount}
+									</SidebarMenuBadge>
+								)}
+							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
