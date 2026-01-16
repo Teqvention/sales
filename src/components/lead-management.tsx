@@ -11,6 +11,11 @@ import {
 	PhoneOff,
 	Calendar,
 	Award,
+	MoreVertical,
+	Edit,
+	Trash2,
+	RotateCcw,
+	ChevronDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,8 +28,25 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table'
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from '@/components/ui/dialog'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { CategorySelector } from '@/components/category-selector'
-import { markAsConverted } from '@/app/actions/leads'
+import { markAsConverted, unconvertLead, updateLead, deleteLead } from '@/app/actions/leads'
 import type { Lead, Industry, Service, LeadStatus } from '@/lib/types'
 
 interface LeadManagementProps {
@@ -51,6 +73,8 @@ export function LeadManagement({
 	const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null)
 	const [selectedService, setSelectedService] = useState<string | null>(null)
 	const [selectedStatus, setSelectedStatus] = useState<LeadStatus | null>(null)
+	const [editingLead, setEditingLead] = useState<Lead | null>(null)
+	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null)
 
 	// Status priority for sorting: CONVERTED > BOOKED > OPEN > NO_ANSWER > NO_INTEREST
 	const statusOrder: Record<string, number> = {
@@ -73,6 +97,41 @@ export function LeadManagement({
 	function handleMarkConverted(leadId: string) {
 		startTransition(async () => {
 			await markAsConverted(leadId)
+			router.refresh()
+		})
+	}
+
+	function handleUnconvert(leadId: string) {
+		startTransition(async () => {
+			await unconvertLead(leadId)
+			router.refresh()
+		})
+	}
+
+	function handleDelete(leadId: string) {
+		startTransition(async () => {
+			await deleteLead(leadId)
+			setDeleteLeadId(null)
+			router.refresh()
+		})
+	}
+
+	function handleEdit(lead: Lead) {
+		setEditingLead(lead)
+	}
+
+	function handleSaveEdit() {
+		if (!editingLead) return
+
+		startTransition(async () => {
+			await updateLead(editingLead.id, {
+				companyName: editingLead.companyName,
+				phone: editingLead.phone,
+				industryId: editingLead.industryId,
+				serviceId: editingLead.serviceId,
+				status: editingLead.status as LeadStatus,
+			})
+			setEditingLead(null)
 			router.refresh()
 		})
 	}
@@ -109,6 +168,192 @@ export function LeadManagement({
 				</div>
 			</div>
 
+			{/* Edit Dialog */}
+			<Dialog open={!!editingLead} onOpenChange={(open) => !open && setEditingLead(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Lead bearbeiten</DialogTitle>
+					</DialogHeader>
+					{editingLead && (
+						<div className="space-y-4 py-4">
+							<div className="space-y-2">
+								<Label htmlFor="companyName">Firmenname</Label>
+								<Input
+									id="companyName"
+									value={editingLead.companyName}
+									onChange={(e) =>
+										setEditingLead({ ...editingLead, companyName: e.target.value })
+									}
+									className="h-12"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="phone">Telefon</Label>
+								<Input
+									id="phone"
+									value={editingLead.phone}
+									onChange={(e) =>
+										setEditingLead({ ...editingLead, phone: e.target.value })
+									}
+									className="h-12"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Branche</Label>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="h-12 w-full justify-between"
+										>
+											<span>
+												{editingLead.industryId
+													? industries.find((i) => i.id === editingLead.industryId)?.name || 'Keine Branche'
+													: 'Keine Branche'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+										<DropdownMenuRadioGroup
+											value={editingLead.industryId || ''}
+											onValueChange={(value) =>
+												setEditingLead({
+													...editingLead,
+													industryId: value || null,
+												})
+											}
+										>
+											<DropdownMenuRadioItem value="">
+												Keine Branche
+											</DropdownMenuRadioItem>
+											{industries.map((industry) => (
+												<DropdownMenuRadioItem key={industry.id} value={industry.id}>
+													{industry.name}
+												</DropdownMenuRadioItem>
+											))}
+										</DropdownMenuRadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+							<div className="space-y-2">
+								<Label>Service</Label>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="h-12 w-full justify-between"
+										>
+											<span>
+												{editingLead.serviceId
+													? services.find((s) => s.id === editingLead.serviceId)?.name || 'Kein Service'
+													: 'Kein Service'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+										<DropdownMenuRadioGroup
+											value={editingLead.serviceId || ''}
+											onValueChange={(value) =>
+												setEditingLead({
+													...editingLead,
+													serviceId: value || null,
+												})
+											}
+										>
+											<DropdownMenuRadioItem value="">
+												Kein Service
+											</DropdownMenuRadioItem>
+											{services.map((service) => (
+												<DropdownMenuRadioItem key={service.id} value={service.id}>
+													{service.name}
+												</DropdownMenuRadioItem>
+											))}
+										</DropdownMenuRadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+							<div className="space-y-2">
+								<Label>Status</Label>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="h-12 w-full justify-between"
+										>
+											<span>
+												{statusConfig[editingLead.status as LeadStatus]?.label || editingLead.status}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+										<DropdownMenuRadioGroup
+											value={editingLead.status}
+											onValueChange={(value) =>
+												setEditingLead({
+													...editingLead,
+													status: value as LeadStatus,
+												})
+											}
+										>
+											{(Object.entries(statusConfig) as [LeadStatus, typeof statusConfig.OPEN][]).map(
+												([status, config]) => (
+													<DropdownMenuRadioItem key={status} value={status}>
+														{config.label}
+													</DropdownMenuRadioItem>
+												)
+											)}
+										</DropdownMenuRadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						</div>
+					)}
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setEditingLead(null)}
+							disabled={isPending}
+						>
+							Abbrechen
+						</Button>
+						<Button onClick={handleSaveEdit} disabled={isPending}>
+							{isPending ? 'Wird gespeichert...' : 'Speichern'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Confirmation Dialog */}
+			<Dialog open={!!deleteLeadId} onOpenChange={(open) => !open && setDeleteLeadId(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Lead löschen</DialogTitle>
+					</DialogHeader>
+					<p className="py-4 text-sm text-muted-foreground">
+						Möchten Sie diesen Lead wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+					</p>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setDeleteLeadId(null)}
+							disabled={isPending}
+						>
+							Abbrechen
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={() => deleteLeadId && handleDelete(deleteLeadId)}
+							disabled={isPending}
+						>
+							{isPending ? 'Wird gelöscht...' : 'Löschen'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			{/* Lead table */}
 			<Card className="border shadow-none">
 				<CardHeader>
@@ -130,6 +375,7 @@ export function LeadManagement({
 									<TableHead>Branche</TableHead>
 									<TableHead>Service</TableHead>
 									<TableHead>Status</TableHead>
+									<TableHead className="w-12"></TableHead>
 									<TableHead className="w-12"></TableHead>
 								</TableRow>
 							</TableHeader>
@@ -176,6 +422,34 @@ export function LeadManagement({
 														Convert
 													</Button>
 												)}
+											</TableCell>
+											<TableCell>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button variant="ghost" size="icon" className="h-8 w-8">
+															<MoreVertical className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem onClick={() => handleEdit(lead)}>
+															<Edit className="mr-2 h-4 w-4" />
+															Bearbeiten
+														</DropdownMenuItem>
+														{lead.status === 'CONVERTED' && (
+															<DropdownMenuItem onClick={() => handleUnconvert(lead.id)}>
+																<RotateCcw className="mr-2 h-4 w-4" />
+																Unconvert
+															</DropdownMenuItem>
+														)}
+														<DropdownMenuItem
+															onClick={() => setDeleteLeadId(lead.id)}
+															className="text-destructive focus:text-destructive focus:bg-destructive/10"
+														>
+															<Trash2 className="mr-2 h-4 w-4" />
+															Löschen
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
 											</TableCell>
 										</TableRow>
 									)

@@ -136,6 +136,56 @@ export async function markAsConverted(leadId: string): Promise<void> {
 	revalidatePath('/admin/dashboard')
 }
 
+export async function unconvertLead(leadId: string): Promise<void> {
+	await requireAdmin()
+
+	await db.$transaction([
+		db.lead.update({
+			where: { id: leadId },
+			data: { status: 'BOOKED' },
+		}),
+		db.appointment.updateMany({
+			where: { leadId },
+			data: { status: 'BOOKED' },
+		}),
+	])
+
+	revalidatePath('/admin/leads')
+	revalidatePath('/admin/dashboard')
+}
+
+export async function updateLead(
+	leadId: string,
+	data: {
+		companyName?: string
+		phone?: string
+		industryId?: string | null
+		serviceId?: string | null
+		status?: LeadStatus
+	}
+): Promise<void> {
+	await requireAdmin()
+
+	await db.lead.update({
+		where: { id: leadId },
+		data,
+	})
+
+	revalidatePath('/admin/leads')
+	revalidatePath('/admin/dashboard')
+}
+
+export async function deleteLead(leadId: string): Promise<void> {
+	await requireAdmin()
+
+	await db.lead.delete({
+		where: { id: leadId },
+	})
+
+	revalidatePath('/admin/leads')
+	revalidatePath('/admin/dashboard')
+}
+
 export async function importLeads(
 	leads: Array<{ companyName: string; phone: string }>,
 	industryId: string | null,
