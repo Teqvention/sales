@@ -43,6 +43,8 @@ export interface UserWithPassword extends User {
 	plainPassword?: string
 }
 
+export type Trend = 'up' | 'down' | null
+
 export interface UserStats {
 	totalCalls: number
 	callsToday: number
@@ -50,16 +52,25 @@ export interface UserStats {
 	appointmentsBooked: number
 	conversions: number
 	appointmentRate: number
+	trends?: {
+		callsToday?: Trend
+		callsThisWeek?: Trend
+		appointmentsBooked?: Trend
+		conversions?: Trend
+		appointmentRate?: Trend
+	}
 }
 
 export interface DailyVolume {
 	date: string
 	calls: number
+	conversions: number
 }
 
 export interface MonthlyVolume {
 	month: string
 	calls: number
+	conversions: number
 }
 
 export interface EmployeeRanking {
