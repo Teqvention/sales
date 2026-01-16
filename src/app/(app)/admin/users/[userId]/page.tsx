@@ -27,38 +27,48 @@ async function fetchAllCallVolumesForUser(userId: string): Promise<AllCallVolume
 	startDate.setDate(1)
 	startDate.setHours(0, 0, 0, 0)
 
-	const calls = await db.call.findMany({
-		where: {
-			userId,
-			createdAt: { gte: startDate },
-		},
-		select: { createdAt: true },
-	})
+	const [calls, conversions] = await Promise.all([
+		db.call.findMany({
+			where: {
+				userId,
+				createdAt: { gte: startDate },
+			},
+			select: { createdAt: true },
+		}),
+		db.appointment.findMany({
+			where: {
+				userId,
+				status: 'CONVERTED',
+				createdAt: { gte: startDate },
+			},
+			select: { createdAt: true },
+		}),
+	])
 
 	// Compute weekly (7 days)
-	const weeklyMap = new Map<string, number>()
+	const weeklyMap = new Map<string, { calls: number; conversions: number }>()
 	const now = new Date()
 	for (let i = 0; i < 7; i++) {
 		const date = new Date(now)
 		date.setDate(date.getDate() - i)
-		weeklyMap.set(date.toISOString().split('T')[0], 0)
+		weeklyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0 })
 	}
 
 	// Compute monthly (30 days)
-	const monthlyMap = new Map<string, number>()
+	const monthlyMap = new Map<string, { calls: number; conversions: number }>()
 	for (let i = 0; i < 30; i++) {
 		const date = new Date(now)
 		date.setDate(date.getDate() - i)
-		monthlyMap.set(date.toISOString().split('T')[0], 0)
+		monthlyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0 })
 	}
 
 	// Compute yearly (12 months)
-	const yearlyMap = new Map<string, number>()
+	const yearlyMap = new Map<string, { calls: number; conversions: number }>()
 	for (let i = 11; i >= 0; i--) {
 		const date = new Date(now)
 		date.setMonth(date.getMonth() - i)
 		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-		yearlyMap.set(monthStr, 0)
+		yearlyMap.set(monthStr, { calls: 0, conversions: 0 })
 	}
 
 	// Count calls into each bucket
@@ -67,26 +77,42 @@ async function fetchAllCallVolumesForUser(userId: string): Promise<AllCallVolume
 		const monthStr = `${call.createdAt.getFullYear()}-${String(call.createdAt.getMonth() + 1).padStart(2, '0')}`
 
 		if (weeklyMap.has(dateStr)) {
-			weeklyMap.set(dateStr, (weeklyMap.get(dateStr) || 0) + 1)
+			weeklyMap.get(dateStr)!.calls++
 		}
 		if (monthlyMap.has(dateStr)) {
-			monthlyMap.set(dateStr, (monthlyMap.get(dateStr) || 0) + 1)
+			monthlyMap.get(dateStr)!.calls++
 		}
 		if (yearlyMap.has(monthStr)) {
-			yearlyMap.set(monthStr, (yearlyMap.get(monthStr) || 0) + 1)
+			yearlyMap.get(monthStr)!.calls++
+		}
+	}
+
+	// Count conversions into each bucket
+	for (const conversion of conversions) {
+		const dateStr = conversion.createdAt.toISOString().split('T')[0]
+		const monthStr = `${conversion.createdAt.getFullYear()}-${String(conversion.createdAt.getMonth() + 1).padStart(2, '0')}`
+
+		if (weeklyMap.has(dateStr)) {
+			weeklyMap.get(dateStr)!.conversions++
+		}
+		if (monthlyMap.has(dateStr)) {
+			monthlyMap.get(dateStr)!.conversions++
+		}
+		if (yearlyMap.has(monthStr)) {
+			yearlyMap.get(monthStr)!.conversions++
 		}
 	}
 
 	const weeklyVolume = Array.from(weeklyMap.entries())
-		.map(([date, calls]) => ({ date, calls }))
+		.map(([date, stats]) => ({ date, ...stats }))
 		.sort((a, b) => a.date.localeCompare(b.date))
 
 	const monthlyVolume = Array.from(monthlyMap.entries())
-		.map(([date, calls]) => ({ date, calls }))
+		.map(([date, stats]) => ({ date, ...stats }))
 		.sort((a, b) => a.date.localeCompare(b.date))
 
 	const yearlyVolume = Array.from(yearlyMap.entries())
-		.map(([month, calls]) => ({ month, calls }))
+		.map(([month, stats]) => ({ month, ...stats }))
 		.sort((a, b) => a.month.localeCompare(b.month))
 
 	return { weeklyVolume, monthlyVolume, yearlyVolume }
