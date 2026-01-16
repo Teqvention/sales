@@ -32,16 +32,17 @@ interface DashboardContentProps {
 	yearlyVolume: MonthlyVolume[]
 }
 
-// Apple Blue color palette
-// Apple Blue color palette
+// Chart colors - using actual values for SVG compatibility
+// Primary: Apple Blue (#007AFF / oklch 0.58 0.22 255)
+// Muted: Neutral gray for non-converted
 const CHART_COLORS = {
-	primary: 'hsl(var(--primary))',
-	primaryLight: 'hsl(var(--primary) / 0.5)',
-	primaryDark: 'hsl(var(--primary))',
-	text: 'hsl(var(--muted-foreground))',
-	grid: 'hsl(var(--border))',
-	muted: 'hsl(var(--muted))', // Apple system gray 6
-	converted: 'hsl(var(--primary))', // Primary blue
+	primary: '#007AFF',           // Apple Blue
+	primaryLight: '#5AC8FA',      // Light blue for gradient
+	primaryDark: '#0055D4',       // Darker blue
+	text: '#8E8E93',              // System gray
+	grid: '#E5E5EA',              // Light border
+	muted: '#C7C7CC',             // Muted gray for non-converted
+	converted: '#007AFF',         // Primary blue for conversions
 }
 
 function TrendIndicator({ trend }: { trend?: Trend }) {
