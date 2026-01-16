@@ -179,6 +179,7 @@ model Notification {
   title     String
   message   String
   type      String   @default("info") // info, success, warning, error
+  category  String   @default("system") // account, lead, system, broadcast
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
