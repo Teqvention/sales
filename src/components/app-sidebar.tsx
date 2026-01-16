@@ -14,6 +14,7 @@ import {
 	ChevronsUpDown,
 	Settings,
 	MessageSquarePlus,
+	Ticket,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import {
@@ -50,9 +51,11 @@ interface AppSidebarProps {
 const employeeNav = [
 	{ title: 'Anrufen', href: '/calling', icon: Phone },
 	{ title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+	{ title: 'Meine Tickets', href: '/support', icon: Ticket },
 ]
 
 const adminNav = [
+	{ title: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield },
 	{ title: 'Benutzer', href: '/admin/users', icon: Users },
 	{ title: 'Leads', href: '/admin/leads', icon: List },
 	{ title: 'Reportings', href: '/admin/feedback', icon: MessageSquarePlus },
