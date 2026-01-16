@@ -26,6 +26,7 @@ model User {
   calls        Call[]
   appointments Appointment[]
   feedback     Feedback[]
+  notifications Notification[]
 
   @@map("user")
 }
@@ -170,3 +171,18 @@ model Feedback {
   @@index([userId])
   @@index([status])
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
