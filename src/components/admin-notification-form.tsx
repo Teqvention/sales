@@ -38,11 +38,11 @@ export function AdminNotificationForm() {
     return (
         <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Form */}
-            <Card className="lg:col-span-2 overflow-hidden">
+            <Card className="lg:col-span-2">
                 <CardHeader className="border-b">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/25">
-                            <Megaphone className="h-5 w-5 text-white" />
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
+                            <Megaphone className="h-5 w-5 text-primary-foreground" />
                         </div>
                         <div>
                             <CardTitle>Neue Nachricht erstellen</CardTitle>
@@ -100,7 +100,7 @@ export function AdminNotificationForm() {
                                     transition-all duration-300
                                     ${success
                                         ? 'bg-emerald-500 hover:bg-emerald-600'
-                                        : 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700'
+                                        : ''
                                     }
                                 `}
                             >
@@ -142,8 +142,8 @@ export function AdminNotificationForm() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-lg bg-blue-500/10">
-                            <Users className="h-4 w-4 text-blue-500" />
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                            <Users className="h-4 w-4 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm font-medium">Alle Benutzer</p>
@@ -154,8 +154,8 @@ export function AdminNotificationForm() {
                     </div>
 
                     <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-lg bg-purple-500/10">
-                            <Megaphone className="h-4 w-4 text-purple-500" />
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                            <Megaphone className="h-4 w-4 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm font-medium">Toast-Benachrichtigung</p>

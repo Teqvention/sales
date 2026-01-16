@@ -14,8 +14,8 @@ export default async function AdminNotificationsPage() {
         <div className="container py-8 px-4 md:px-8 space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/25">
-                    <Megaphone className="h-6 w-6 text-white" />
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
+                    <Megaphone className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Nachrichten senden</h1>

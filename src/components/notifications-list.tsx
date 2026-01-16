@@ -11,7 +11,6 @@ import {
     Info,
     Megaphone,
     CheckCheck,
-    Bell,
     BellOff,
     Sparkles,
     Check
@@ -25,37 +24,32 @@ interface NotificationsListProps {
 
 const categoryConfig: Record<string, {
     icon: React.ElementType
-    gradient: string
     bgColor: string
-    textColor: string
+    iconColor: string
     label: string
 }> = {
     account: {
         icon: UserCog,
-        gradient: 'from-blue-500 to-blue-600',
         bgColor: 'bg-blue-500/10',
-        textColor: 'text-blue-600 dark:text-blue-400',
+        iconColor: 'text-blue-600 dark:text-blue-400',
         label: 'Konto',
     },
     lead: {
         icon: TrendingUp,
-        gradient: 'from-emerald-500 to-green-600',
         bgColor: 'bg-emerald-500/10',
-        textColor: 'text-emerald-600 dark:text-emerald-400',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
         label: 'Lead',
     },
     system: {
         icon: Info,
-        gradient: 'from-amber-500 to-orange-500',
         bgColor: 'bg-amber-500/10',
-        textColor: 'text-amber-600 dark:text-amber-400',
+        iconColor: 'text-amber-600 dark:text-amber-400',
         label: 'System',
     },
     broadcast: {
         icon: Megaphone,
-        gradient: 'from-purple-500 to-violet-600',
-        bgColor: 'bg-purple-500/10',
-        textColor: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-primary/10',
+        iconColor: 'text-primary',
         label: 'Nachricht',
     },
 }
@@ -120,7 +114,7 @@ export function NotificationsList({ notifications }: NotificationsListProps) {
         return (
             <Card className="border-dashed">
                 <CardContent className="py-16 text-center">
-                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-muted to-muted/50">
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
                         <BellOff className="h-10 w-10 text-muted-foreground" />
                     </div>
                     <h3 className="text-lg font-medium mb-2">Keine Benachrichtigungen</h3>
@@ -172,7 +166,7 @@ export function NotificationsList({ notifications }: NotificationsListProps) {
             {/* Notifications List */}
             <ScrollArea className="h-[calc(100vh-280px)] pr-4">
                 <div className="space-y-3">
-                    {items.map((notification, index) => {
+                    {items.map((notification) => {
                         const config = categoryConfig[notification.category] || categoryConfig.system
                         const Icon = config.icon
                         const isLoading = loadingId === notification.id
@@ -182,30 +176,21 @@ export function NotificationsList({ notifications }: NotificationsListProps) {
                                 key={notification.id}
                                 className={`
                                     group relative overflow-hidden rounded-xl border bg-card p-4
-                                    transition-all duration-300 ease-out
-                                    hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5
                                     ${!notification.read
-                                        ? 'border-primary/30 bg-gradient-to-r from-primary/5 to-transparent'
-                                        : 'border-border hover:border-border/80'
+                                        ? 'border-primary/30 bg-primary/5'
+                                        : 'border-border'
                                     }
                                 `}
-                                style={{
-                                    animationDelay: `${index * 50}ms`,
-                                }}
                             >
                                 {/* Unread indicator */}
                                 {!notification.read && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-l-xl" />
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
                                 )}
 
                                 <div className="flex items-start gap-4">
                                     {/* Icon */}
-                                    <div className={`
-                                        flex-shrink-0 p-2.5 rounded-xl
-                                        bg-gradient-to-br ${config.gradient}
-                                        shadow-lg shadow-${config.gradient.split(' ')[0].replace('from-', '')}/25
-                                    `}>
-                                        <Icon className="h-5 w-5 text-white" />
+                                    <div className={`flex-shrink-0 p-2.5 rounded-xl ${config.bgColor}`}>
+                                        <Icon className={`h-5 w-5 ${config.iconColor}`} />
                                     </div>
 
                                     {/* Content */}
@@ -218,7 +203,7 @@ export function NotificationsList({ notifications }: NotificationsListProps) {
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <Badge
                                                         variant="secondary"
-                                                        className={`${config.bgColor} ${config.textColor} border-0 text-xs font-medium`}
+                                                        className={`${config.bgColor} ${config.iconColor} border-0 text-xs font-medium`}
                                                     >
                                                         {config.label}
                                                     </Badge>
@@ -235,12 +220,7 @@ export function NotificationsList({ notifications }: NotificationsListProps) {
                                                     size="sm"
                                                     onClick={() => handleMarkAsRead(notification.id)}
                                                     disabled={isLoading || isPending}
-                                                    className={`
-                                                        shrink-0 h-8 px-3 text-xs
-                                                        opacity-0 group-hover:opacity-100
-                                                        transition-opacity duration-200
-                                                        ${isLoading ? 'opacity-100' : ''}
-                                                    `}
+                                                    className="shrink-0 h-8 px-3 text-xs"
                                                 >
                                                     {isLoading ? (
                                                         <div className="h-3 w-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
