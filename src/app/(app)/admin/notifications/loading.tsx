@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 export default function AdminNotificationsLoading() {
     return (
-        <div className="container py-8 px-4 md:px-8 space-y-8">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             {/* Header Skeleton */}
             <div className="flex items-center gap-4">
                 <Skeleton className="h-14 w-14 rounded-2xl" />

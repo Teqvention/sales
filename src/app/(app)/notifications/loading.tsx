@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 export default function NotificationsLoading() {
     return (
-        <div className="container py-6 space-y-6">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <div>
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-4 w-72 mt-2" />
