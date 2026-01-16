@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { getCurrentUser } from '@/lib/auth'
+import { Toaster } from 'sonner'
+import { NotificationHandler } from '@/components/notification-handler'
 
 export default async function AppLayout({
 	children,
@@ -26,6 +28,8 @@ export default async function AppLayout({
 					{children}
 				</main>
 			</SidebarInset>
+			<NotificationHandler userId={user.id} />
+			<Toaster richColors position="top-right" />
 		</SidebarProvider>
 	)
 }
