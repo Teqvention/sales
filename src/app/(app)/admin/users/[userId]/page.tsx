@@ -4,7 +4,7 @@ import { DashboardContent } from '@/components/dashboard-content'
 import { requireAdmin } from '@/lib/auth'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import type { DailyVolume, MonthlyVolume } from '@/lib/types'
@@ -147,17 +147,21 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
 	return (
 		<div className="flex flex-col gap-6 p-4 md:p-6">
-			<div>
-				<Button variant="ghost" size="sm" className="mb-2" asChild>
+			<div className="flex items-center gap-4">
+				<Button variant="ghost" size="icon" className="shrink-0" asChild>
 					<Link href="/admin/users">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Zurück
+						<ArrowLeft className="h-4 w-4" />
 					</Link>
 				</Button>
-				<h1 className="text-2xl font-semibold">{user.name}</h1>
-				<p className="text-muted-foreground">
-					{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} Dashboard
-				</p>
+				<div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
+					<User className="h-6 w-6 text-primary-foreground" />
+				</div>
+				<div>
+					<h1 className="text-2xl font-bold tracking-tight">{user.name}</h1>
+					<p className="text-muted-foreground">
+						{user.role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} Dashboard
+					</p>
+				</div>
 			</div>
 			<DashboardContent
 				stats={stats}
