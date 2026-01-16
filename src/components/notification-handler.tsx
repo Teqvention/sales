@@ -25,31 +25,43 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
 
                 if (notifications.length === 0) return
 
-                // Mark all as read FIRST to prevent duplicates
-                const notificationIds = notifications.map((n) => n.id)
-                await markNotificationsAsRead(userId, notificationIds)
-
-                // Then display each notification as a toast
-                notifications.forEach((notification: Notification) => {
+                // Show toasts FIRST with staggered delays for better UX
+                notifications.forEach((notification: Notification, index: number) => {
                     const notificationType = notification.type as ToastType
                     const toastFn = {
                         info: toast.info,
                         success: toast.success,
                         warning: toast.warning,
                         error: toast.error,
-                    }[notificationType] || toast
+                    }[notificationType] || toast.info
 
-                    toastFn(notification.title, {
-                        description: notification.message,
-                        duration: 5000,
-                    })
+                    // Stagger toasts with 300ms delay between each
+                    setTimeout(() => {
+                        toastFn(notification.title, {
+                            description: notification.message,
+                            duration: 6000,
+                        })
+                    }, index * 300)
                 })
+
+                // Mark all as read AFTER showing (slight delay to ensure toasts are queued)
+                setTimeout(async () => {
+                    try {
+                        const notificationIds = notifications.map((n) => n.id)
+                        await markNotificationsAsRead(userId, notificationIds)
+                    } catch (error) {
+                        console.error('Failed to mark notifications as read:', error)
+                    }
+                }, 500)
+
             } catch (error) {
                 console.error('Failed to load notifications:', error)
             }
         }
 
-        loadNotifications()
+        // Small delay to ensure the page is fully mounted
+        const timer = setTimeout(loadNotifications, 100)
+        return () => clearTimeout(timer)
     }, [userId])
 
     return null

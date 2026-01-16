@@ -52,7 +52,7 @@ export async function getAllNotifications(userId: string) {
     return notifications
 }
 
-// Cached unread count for sidebar badge
+// Cached unread count for sidebar badge (short cache)
 const _getCachedUnreadCount = unstable_cache(
     async (userId: string) => {
         const count = await db.notification.count({
@@ -65,13 +65,24 @@ const _getCachedUnreadCount = unstable_cache(
     },
     ['unread-count'],
     {
-        revalidate: 60, // 1 minute
+        revalidate: 30, // 30 seconds - shorter for fresher counts
         tags: ['unread-count'],
     }
 )
 
 export async function getUnreadCount(userId: string) {
     return _getCachedUnreadCount(userId)
+}
+
+// Fresh unread count (no cache) - use for initial page load
+export async function getFreshUnreadCount(userId: string) {
+    const count = await db.notification.count({
+        where: {
+            userId,
+            read: false,
+        },
+    })
+    return count
 }
 
 // Mark notifications as read (batch)

@@ -11,7 +11,7 @@ export default async function AdminNotificationsPage() {
     }
 
     return (
-        <div className="container py-8 space-y-8">
+        <div className="container py-8 px-4 md:px-8 space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/25">

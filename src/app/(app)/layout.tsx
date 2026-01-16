@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { getCurrentUser } from '@/lib/auth'
-import { getUnreadCount } from '@/app/actions/notifications'
+import { getFreshUnreadCount } from '@/app/actions/notifications'
 import { Toaster } from 'sonner'
 import { NotificationHandler } from '@/components/notification-handler'
 
@@ -17,7 +17,7 @@ export default async function AppLayout({
 		redirect('/login')
 	}
 
-	const unreadCount = await getUnreadCount(user.id)
+	const unreadCount = await getFreshUnreadCount(user.id)
 
 	return (
 		<SidebarProvider>
