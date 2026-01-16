@@ -168,6 +168,7 @@ export async function markAsConverted(leadId: string): Promise<void> {
 				title: 'Lead konvertiert! 🎉',
 				message: `Super Arbeit! Der Lead "${lead.companyName}" wurde erfolgreich konvertiert.`,
 				type: 'success',
+				category: 'lead',
 			},
 		})
 	}

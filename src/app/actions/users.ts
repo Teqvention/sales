@@ -111,7 +111,8 @@ export async function updateUserRole(userId: string, role: Role): Promise<void> 
 		userId,
 		'Rolle geändert',
 		`Ihre Rolle wurde zu ${role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} geändert.`,
-		'info'
+		'info',
+		'account'
 	)
 
 	revalidateTag('users-list', 'default')

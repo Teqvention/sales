@@ -116,6 +116,7 @@ export async function updateFeedbackStatus(id: string, status: string) {
                 title: 'Status-Update für Ihr Feedback',
                 message: `Ihr Bericht "${feedback.subject}" wurde auf "${statusLabel}" aktualisiert.`,
                 type: 'info',
+                category: 'system',
             },
         })
     }
