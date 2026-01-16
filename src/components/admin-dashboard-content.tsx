@@ -23,13 +23,29 @@ import {
 	Clock,
 	ExternalLink,
 	Download,
+	TrendingUp,
+	TrendingDown,
 } from 'lucide-react'
-import type { UserStats, EmployeeRanking, LeadOverview } from '@/lib/types'
+import type { UserStats, EmployeeRanking, LeadOverview, Trend } from '@/lib/types'
 
 interface AdminDashboardContentProps {
 	stats: UserStats
 	rankings: EmployeeRanking[]
 	leadOverview: LeadOverview
+}
+
+function TrendIndicator({ trend }: { trend?: Trend }) {
+	if (!trend) return null
+	
+	if (trend === 'up') {
+		return (
+			<TrendingUp className="h-3.5 w-3.5 text-green-600" />
+		)
+	}
+	
+	return (
+		<TrendingDown className="h-3.5 w-3.5 text-red-600" />
+	)
 }
 
 export function AdminDashboardContent({
@@ -84,7 +100,10 @@ export function AdminDashboardContent({
 						<Clock className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.callsToday}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.callsToday}</p>
+							<TrendIndicator trend={stats.trends?.callsToday} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -96,7 +115,10 @@ export function AdminDashboardContent({
 						<Calendar className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.appointmentsBooked}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.appointmentsBooked}</p>
+							<TrendIndicator trend={stats.trends?.appointmentsBooked} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -108,7 +130,10 @@ export function AdminDashboardContent({
 						<Award className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.conversions}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.conversions}</p>
+							<TrendIndicator trend={stats.trends?.conversions} />
+						</div>
 					</CardContent>
 				</Card>
 			</div>

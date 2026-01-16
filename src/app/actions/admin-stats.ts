@@ -11,24 +11,114 @@ async function fetchAdminStats(): Promise<UserStats> {
 	const startOfWeek = new Date(startOfDay)
 	startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
 
-	const [totalCalls, callsToday, callsThisWeek, appointmentsBooked, conversions] =
-		await Promise.all([
-			db.call.count(),
-			db.call.count({
-				where: { createdAt: { gte: startOfDay } },
-			}),
-			db.call.count({
-				where: { createdAt: { gte: startOfWeek } },
-			}),
-			db.appointment.count(),
-			db.appointment.count({
-				where: { status: 'CONVERTED' },
-			}),
-		])
+	// Calculate date ranges for trends (last 7 days vs previous 7 days)
+	const last7DaysStart = new Date(now)
+	last7DaysStart.setDate(last7DaysStart.getDate() - 7)
+	last7DaysStart.setHours(0, 0, 0, 0)
+	
+	const previous7DaysStart = new Date(last7DaysStart)
+	previous7DaysStart.setDate(previous7DaysStart.getDate() - 7)
+	const previous7DaysEnd = new Date(last7DaysStart)
+
+	const yesterday = new Date(startOfDay)
+	yesterday.setDate(yesterday.getDate() - 1)
+
+	const [
+		totalCalls,
+		callsToday,
+		callsThisWeek,
+		appointmentsBooked,
+		conversions,
+		// Trend data: last 7 days
+		callsLast7Days,
+		appointmentsLast7Days,
+		conversionsLast7Days,
+		// Trend data: previous 7 days
+		callsPrevious7Days,
+		appointmentsPrevious7Days,
+		conversionsPrevious7Days,
+		// Yesterday for callsToday trend
+		callsYesterday,
+	] = await Promise.all([
+		db.call.count(),
+		db.call.count({
+			where: { createdAt: { gte: startOfDay } },
+		}),
+		db.call.count({
+			where: { createdAt: { gte: startOfWeek } },
+		}),
+		db.appointment.count(),
+		db.appointment.count({
+			where: { status: 'CONVERTED' },
+		}),
+		// Last 7 days
+		db.call.count({
+			where: { createdAt: { gte: last7DaysStart } },
+		}),
+		db.appointment.count({
+			where: { createdAt: { gte: last7DaysStart } },
+		}),
+		db.appointment.count({
+			where: {
+				status: 'CONVERTED',
+				createdAt: { gte: last7DaysStart },
+			},
+		}),
+		// Previous 7 days
+		db.call.count({
+			where: {
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
+				},
+			},
+		}),
+		db.appointment.count({
+			where: {
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
+				},
+			},
+		}),
+		db.appointment.count({
+			where: {
+				status: 'CONVERTED',
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
+				},
+			},
+		}),
+		// Yesterday
+		db.call.count({
+			where: {
+				createdAt: {
+					gte: yesterday,
+					lt: startOfDay,
+				},
+			},
+		}),
+	])
 
 	const appointmentRate = totalCalls > 0
 		? Math.round((appointmentsBooked / totalCalls) * 100)
 		: 0
+
+	// Calculate appointment rate for last 7 days and previous 7 days
+	const appointmentRateLast7Days = callsLast7Days > 0
+		? Math.round((appointmentsLast7Days / callsLast7Days) * 100)
+		: 0
+	const appointmentRatePrevious7Days = callsPrevious7Days > 0
+		? Math.round((appointmentsPrevious7Days / callsPrevious7Days) * 100)
+		: 0
+
+	// Calculate trends (only show if there's a change)
+	const calculateTrend = (current: number, previous: number): 'up' | 'down' | null => {
+		if (current > previous) return 'up'
+		if (current < previous) return 'down'
+		return null
+	}
 
 	return {
 		totalCalls,
@@ -37,6 +127,13 @@ async function fetchAdminStats(): Promise<UserStats> {
 		appointmentsBooked,
 		conversions,
 		appointmentRate,
+		trends: {
+			callsToday: calculateTrend(callsToday, callsYesterday),
+			callsThisWeek: calculateTrend(callsLast7Days, callsPrevious7Days),
+			appointmentsBooked: calculateTrend(appointmentsLast7Days, appointmentsPrevious7Days),
+			conversions: calculateTrend(conversionsLast7Days, conversionsPrevious7Days),
+			appointmentRate: calculateTrend(appointmentRateLast7Days, appointmentRatePrevious7Days),
+		},
 	}
 }
 
@@ -121,33 +218,134 @@ async function fetchUserStatsById(userId: string): Promise<UserStats> {
 	const startOfWeek = new Date(startOfDay)
 	startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
 
-	const [totalCalls, callsToday, callsThisWeek, appointmentsBooked, conversions] =
-		await Promise.all([
-			db.call.count({ where: { userId } }),
-			db.call.count({
-				where: {
-					userId,
-					createdAt: { gte: startOfDay },
+	// Calculate date ranges for trends (last 7 days vs previous 7 days)
+	const last7DaysStart = new Date(now)
+	last7DaysStart.setDate(last7DaysStart.getDate() - 7)
+	last7DaysStart.setHours(0, 0, 0, 0)
+	
+	const previous7DaysStart = new Date(last7DaysStart)
+	previous7DaysStart.setDate(previous7DaysStart.getDate() - 7)
+	const previous7DaysEnd = new Date(last7DaysStart)
+
+	const yesterday = new Date(startOfDay)
+	yesterday.setDate(yesterday.getDate() - 1)
+
+	const [
+		totalCalls,
+		callsToday,
+		callsThisWeek,
+		appointmentsBooked,
+		conversions,
+		// Trend data: last 7 days
+		callsLast7Days,
+		appointmentsLast7Days,
+		conversionsLast7Days,
+		// Trend data: previous 7 days
+		callsPrevious7Days,
+		appointmentsPrevious7Days,
+		conversionsPrevious7Days,
+		// Yesterday for callsToday trend
+		callsYesterday,
+	] = await Promise.all([
+		db.call.count({ where: { userId } }),
+		db.call.count({
+			where: {
+				userId,
+				createdAt: { gte: startOfDay },
+			},
+		}),
+		db.call.count({
+			where: {
+				userId,
+				createdAt: { gte: startOfWeek },
+			},
+		}),
+		db.appointment.count({ where: { userId } }),
+		db.appointment.count({
+			where: {
+				userId,
+				status: 'CONVERTED',
+			},
+		}),
+		// Last 7 days
+		db.call.count({
+			where: {
+				userId,
+				createdAt: { gte: last7DaysStart },
+			},
+		}),
+		db.appointment.count({
+			where: {
+				userId,
+				createdAt: { gte: last7DaysStart },
+			},
+		}),
+		db.appointment.count({
+			where: {
+				userId,
+				status: 'CONVERTED',
+				createdAt: { gte: last7DaysStart },
+			},
+		}),
+		// Previous 7 days
+		db.call.count({
+			where: {
+				userId,
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
 				},
-			}),
-			db.call.count({
-				where: {
-					userId,
-					createdAt: { gte: startOfWeek },
+			},
+		}),
+		db.appointment.count({
+			where: {
+				userId,
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
 				},
-			}),
-			db.appointment.count({ where: { userId } }),
-			db.appointment.count({
-				where: {
-					userId,
-					status: 'CONVERTED',
+			},
+		}),
+		db.appointment.count({
+			where: {
+				userId,
+				status: 'CONVERTED',
+				createdAt: {
+					gte: previous7DaysStart,
+					lt: previous7DaysEnd,
 				},
-			}),
-		])
+			},
+		}),
+		// Yesterday
+		db.call.count({
+			where: {
+				userId,
+				createdAt: {
+					gte: yesterday,
+					lt: startOfDay,
+				},
+			},
+		}),
+	])
 
 	const appointmentRate = totalCalls > 0
 		? Math.round((appointmentsBooked / totalCalls) * 100)
 		: 0
+
+	// Calculate appointment rate for last 7 days and previous 7 days
+	const appointmentRateLast7Days = callsLast7Days > 0
+		? Math.round((appointmentsLast7Days / callsLast7Days) * 100)
+		: 0
+	const appointmentRatePrevious7Days = callsPrevious7Days > 0
+		? Math.round((appointmentsPrevious7Days / callsPrevious7Days) * 100)
+		: 0
+
+	// Calculate trends (only show if there's a change)
+	const calculateTrend = (current: number, previous: number): 'up' | 'down' | null => {
+		if (current > previous) return 'up'
+		if (current < previous) return 'down'
+		return null
+	}
 
 	return {
 		totalCalls,
@@ -156,6 +354,13 @@ async function fetchUserStatsById(userId: string): Promise<UserStats> {
 		appointmentsBooked,
 		conversions,
 		appointmentRate,
+		trends: {
+			callsToday: calculateTrend(callsToday, callsYesterday),
+			callsThisWeek: calculateTrend(callsLast7Days, callsPrevious7Days),
+			appointmentsBooked: calculateTrend(appointmentsLast7Days, appointmentsPrevious7Days),
+			conversions: calculateTrend(conversionsLast7Days, conversionsPrevious7Days),
+			appointmentRate: calculateTrend(appointmentRateLast7Days, appointmentRatePrevious7Days),
+		},
 	}
 }
 
