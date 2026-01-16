@@ -55,7 +55,6 @@ interface AppSidebarProps {
 const employeeNav = [
 	{ title: 'Anrufen', href: '/calling', icon: Phone },
 	{ title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-	{ title: 'Meine Tickets', href: '/support', icon: Ticket },
 ]
 
 const adminNav = [
@@ -201,6 +200,13 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 						>
 							<MessageSquarePlus className="h-4 w-4" />
 							Feedback & Hilfe
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={() => router.push('/support')}
+							className="gap-2 rounded-lg"
+						>
+							<Ticket className="h-4 w-4" />
+							Meine Tickets
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
