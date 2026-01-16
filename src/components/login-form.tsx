@@ -48,7 +48,7 @@ export function LoginForm({
             <div className="flex flex-col items-center gap-2">
                 <a href="#" className="flex items-center gap-3 font-medium">
                     <div className="flex items-center justify-center rounded-md">
-                        <img src="/Logo.png" alt="Rufhammer Logo" className="h-10 w-auto" />
+                        <img src="/logo.png" alt="Rufhammer Logo" className="h-10 w-auto" />
                     </div>
                     <span className="text-3xl text-foreground flex items-center gap-0.5">
                         <span className="font-bold">Ruf</span>
