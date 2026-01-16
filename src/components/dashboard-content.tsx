@@ -6,6 +6,7 @@ import {
 	Phone,
 	Calendar,
 	TrendingUp,
+	TrendingDown,
 	Award,
 	Clock,
 	Target,
@@ -20,8 +21,9 @@ import {
 	ResponsiveContainer,
 	Tooltip,
 	CartesianGrid,
+	Legend,
 } from 'recharts'
-import type { UserStats, DailyVolume, MonthlyVolume } from '@/lib/types'
+import type { UserStats, DailyVolume, MonthlyVolume, Trend } from '@/lib/types'
 
 interface DashboardContentProps {
 	stats: UserStats
@@ -31,16 +33,33 @@ interface DashboardContentProps {
 }
 
 // Apple Blue color palette
+// Apple Blue color palette
 const CHART_COLORS = {
-	primary: '#007AFF',
-	primaryLight: '#5AC8FA',
-	primaryDark: '#0051D5',
-	text: '#8E8E93',
-	grid: '#F2F2F7',
+	primary: 'hsl(var(--primary))',
+	primaryLight: 'hsl(var(--primary) / 0.5)',
+	primaryDark: 'hsl(var(--primary))',
+	text: 'hsl(var(--muted-foreground))',
+	grid: 'hsl(var(--border))',
+	muted: 'hsl(var(--muted))', // Apple system gray 6
+	converted: 'hsl(var(--primary))', // Primary blue
 }
 
-export function DashboardContent({ 
-	stats, 
+function TrendIndicator({ trend }: { trend?: Trend }) {
+	if (!trend) return null
+
+	if (trend === 'up') {
+		return (
+			<TrendingUp className="h-3.5 w-3.5 text-green-600" />
+		)
+	}
+
+	return (
+		<TrendingDown className="h-3.5 w-3.5 text-red-600" />
+	)
+}
+
+export function DashboardContent({
+	stats,
 	weeklyVolume,
 	monthlyVolume,
 	yearlyVolume,
@@ -48,11 +67,13 @@ export function DashboardContent({
 	const formattedWeekly = weeklyVolume.map((d) => ({
 		...d,
 		label: new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short' }),
+		nonConverted: Math.max(0, d.calls - d.conversions),
 	}))
 
 	const formattedMonthly = monthlyVolume.map((d) => ({
 		...d,
 		label: new Date(d.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+		nonConverted: Math.max(0, d.calls - d.conversions),
 	}))
 
 	const formattedYearly = yearlyVolume.map((d) => ({
@@ -84,7 +105,10 @@ export function DashboardContent({
 						<Clock className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.callsToday}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.callsToday}</p>
+							<TrendIndicator trend={stats.trends?.callsToday} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -96,7 +120,10 @@ export function DashboardContent({
 						<Target className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.callsThisWeek}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.callsThisWeek}</p>
+							<TrendIndicator trend={stats.trends?.callsThisWeek} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -108,7 +135,10 @@ export function DashboardContent({
 						<Calendar className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.appointmentsBooked}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.appointmentsBooked}</p>
+							<TrendIndicator trend={stats.trends?.appointmentsBooked} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -120,7 +150,10 @@ export function DashboardContent({
 						<Award className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.conversions}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.conversions}</p>
+							<TrendIndicator trend={stats.trends?.conversions} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -132,7 +165,10 @@ export function DashboardContent({
 						<TrendingUp className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.appointmentRate}%</p>
+						<div className="flex items-center gap-2">
+							<p className="text-2xl font-bold">{stats.appointmentRate}%</p>
+							<TrendIndicator trend={stats.trends?.appointmentRate} />
+						</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -159,9 +195,13 @@ export function DashboardContent({
 												<stop offset="0%" stopColor={CHART_COLORS.primaryLight} stopOpacity={1} />
 												<stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={1} />
 											</linearGradient>
+											<linearGradient id="convertedGradient" x1="0" y1="0" x2="0" y2="1">
+												<stop offset="0%" stopColor={CHART_COLORS.primaryLight} stopOpacity={1} />
+												<stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={1} />
+											</linearGradient>
 										</defs>
-										<CartesianGrid 
-											strokeDasharray="3 3" 
+										<CartesianGrid
+											strokeDasharray="3 3"
 											stroke={CHART_COLORS.grid}
 											vertical={false}
 										/>
@@ -184,6 +224,7 @@ export function DashboardContent({
 											dx={-8}
 										/>
 										<Tooltip
+											isAnimationActive={false}
 											cursor={{ fill: 'rgba(0, 122, 255, 0.05)', radius: 8 }}
 											contentStyle={{
 												background: 'rgba(255, 255, 255, 0.95)',
@@ -195,11 +236,26 @@ export function DashboardContent({
 											}}
 											labelStyle={{ color: '#1D1D1F', fontWeight: 600, marginBottom: 4 }}
 											itemStyle={{ color: CHART_COLORS.primary }}
-											formatter={(value) => [`${value ?? 0} Anrufe`, '']}
+											formatter={(value: any, name: any) => {
+												if (name === 'Anrufe') return [`${value} Anrufe`, 'Nicht konvertiert']
+												if (name === 'Konvertiert') return [`${value} Konvertiert`, 'Konvertiert']
+												return [value, name]
+											}}
+										/>
+										<Legend />
+										<Bar
+											dataKey="conversions"
+											name="Konvertiert"
+											stackId="a"
+											fill="url(#convertedGradient)"
+											radius={[0, 0, 0, 0]}
+											maxBarSize={50}
 										/>
 										<Bar
-											dataKey="calls"
-											fill="url(#barGradientWeekly)"
+											dataKey="nonConverted"
+											name="Anrufe"
+											stackId="a"
+											fill={CHART_COLORS.muted}
 											radius={[8, 8, 0, 0]}
 											maxBarSize={50}
 										/>
@@ -217,9 +273,13 @@ export function DashboardContent({
 												<stop offset="0%" stopColor={CHART_COLORS.primaryLight} stopOpacity={1} />
 												<stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={1} />
 											</linearGradient>
+											<linearGradient id="convertedGradientMonthly" x1="0" y1="0" x2="0" y2="1">
+												<stop offset="0%" stopColor={CHART_COLORS.primaryLight} stopOpacity={1} />
+												<stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={1} />
+											</linearGradient>
 										</defs>
-										<CartesianGrid 
-											strokeDasharray="3 3" 
+										<CartesianGrid
+											strokeDasharray="3 3"
 											stroke={CHART_COLORS.grid}
 											vertical={false}
 										/>
@@ -243,6 +303,7 @@ export function DashboardContent({
 											dx={-8}
 										/>
 										<Tooltip
+											isAnimationActive={false}
 											cursor={{ fill: 'rgba(0, 122, 255, 0.05)', radius: 8 }}
 											contentStyle={{
 												background: 'rgba(255, 255, 255, 0.95)',
@@ -254,11 +315,26 @@ export function DashboardContent({
 											}}
 											labelStyle={{ color: '#1D1D1F', fontWeight: 600, marginBottom: 4 }}
 											itemStyle={{ color: CHART_COLORS.primary }}
-											formatter={(value) => [`${value ?? 0} Anrufe`, '']}
+											formatter={(value: any, name: any) => {
+												if (name === 'Anrufe') return [`${value} Anrufe`, 'Nicht konvertiert']
+												if (name === 'Konvertiert') return [`${value} Konvertiert`, 'Konvertiert']
+												return [value, name]
+											}}
+										/>
+										<Legend />
+										<Bar
+											dataKey="conversions"
+											name="Konvertiert"
+											stackId="a"
+											fill="url(#convertedGradientMonthly)"
+											radius={[0, 0, 0, 0]}
+											maxBarSize={24}
 										/>
 										<Bar
-											dataKey="calls"
-											fill="url(#barGradientMonthly)"
+											dataKey="nonConverted"
+											name="Anrufe"
+											stackId="a"
+											fill={CHART_COLORS.muted}
 											radius={[6, 6, 0, 0]}
 											maxBarSize={24}
 										/>
@@ -283,8 +359,8 @@ export function DashboardContent({
 												<stop offset="100%" stopColor={CHART_COLORS.primary} />
 											</linearGradient>
 										</defs>
-										<CartesianGrid 
-											strokeDasharray="3 3" 
+										<CartesianGrid
+											strokeDasharray="3 3"
 											stroke={CHART_COLORS.grid}
 											vertical={false}
 										/>
