@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { auth, requireAdmin, generatePassword, encryptPassword, decryptPassword } from '@/lib/auth'
 import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
 import type { User, UserWithPassword, Role } from '@/lib/types'
+import { createNotification } from './notifications'
 
 // Internal cached function
 const _getCachedUsers = unstable_cache(
@@ -104,6 +105,14 @@ export async function updateUserRole(userId: string, role: Role): Promise<void> 
 		where: { id: userId },
 		data: { role },
 	})
+
+	// Notify user about role change
+	await createNotification(
+		userId,
+		'Rolle geändert',
+		`Ihre Rolle wurde zu ${role === 'ADMIN' ? 'Administrator' : 'Mitarbeiter'} geändert.`,
+		'info'
+	)
 
 	revalidateTag('users-list', 'default')
 	revalidatePath('/admin/users')

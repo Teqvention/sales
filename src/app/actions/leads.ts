@@ -137,6 +137,18 @@ export async function recordCall(
 export async function markAsConverted(leadId: string): Promise<void> {
 	await requireAdmin()
 
+	// Get the lead with the employee who booked it (via the Call record)
+	const lead = await db.lead.findUnique({
+		where: { id: leadId },
+		include: {
+			calls: {
+				where: { outcome: 'BOOKED' },
+				select: { userId: true },
+				take: 1,
+			},
+		},
+	})
+
 	await db.$transaction([
 		db.lead.update({
 			where: { id: leadId },
@@ -147,6 +159,18 @@ export async function markAsConverted(leadId: string): Promise<void> {
 			data: { status: 'CONVERTED' },
 		}),
 	])
+
+	// Notify the employee who booked this lead
+	if (lead?.calls?.[0]?.userId) {
+		await db.notification.create({
+			data: {
+				userId: lead.calls[0].userId,
+				title: 'Lead konvertiert! 🎉',
+				message: `Super Arbeit! Der Lead "${lead.companyName}" wurde erfolgreich konvertiert.`,
+				type: 'success',
+			},
+		})
+	}
 
 	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')

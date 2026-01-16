@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Copy, Check, Shield, User as UserIcon, MoreVertical, Plus, Eye, Key } from 'lucide-react'
+import { Copy, Check, Shield, User as UserIcon, MoreVertical, Plus, Eye, Key, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,7 +30,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createUser, updateUserRole, resetUserPassword, getUserPassword } from '@/app/actions/users'
+import { createUser, updateUserRole, resetUserPassword, getUserPassword, deleteUser } from '@/app/actions/users'
 import type { User, Role } from '@/lib/types'
 
 interface UserManagementProps {
@@ -46,6 +46,7 @@ export function UserManagement({ users }: UserManagementProps) {
 	const [createdUser, setCreatedUser] = useState<{ name: string; email: string; password: string } | null>(null)
 	const [copiedId, setCopiedId] = useState<string | null>(null)
 	const [passwordModal, setPasswordModal] = useState<{ userId: string; password: string } | null>(null)
+	const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; userName: string } | null>(null)
 
 	function handleCreateUser() {
 		if (!newName.trim() || !newEmail.trim()) return
@@ -92,6 +93,14 @@ export function UserManagement({ users }: UserManagementProps) {
 		navigator.clipboard.writeText(text)
 		setCopiedId(id)
 		setTimeout(() => setCopiedId(null), 2000)
+	}
+
+	function handleDeleteUser(userId: string) {
+		startTransition(async () => {
+			await deleteUser(userId)
+			setDeleteConfirm(null)
+			router.refresh()
+		})
 	}
 
 	return (
@@ -235,6 +244,34 @@ export function UserManagement({ users }: UserManagementProps) {
 				</DialogContent>
 			</Dialog>
 
+			{/* Delete confirmation dialog */}
+			<Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Benutzer löschen?</DialogTitle>
+					</DialogHeader>
+					{deleteConfirm && (
+						<div className="space-y-4 py-4">
+							<p className="text-muted-foreground">
+								Möchten Sie den Benutzer <span className="font-medium text-foreground">{deleteConfirm.userName}</span> wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+							</p>
+							<DialogFooter className="gap-2 sm:gap-0">
+								<Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+									Abbrechen
+								</Button>
+								<Button
+									variant="destructive"
+									onClick={() => handleDeleteUser(deleteConfirm.userId)}
+									disabled={isPending}
+								>
+									{isPending ? 'Wird gelöscht...' : 'Löschen'}
+								</Button>
+							</DialogFooter>
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
+
 			{/* User list */}
 			<Card className="border shadow-none">
 				<CardHeader>
@@ -305,6 +342,13 @@ export function UserManagement({ users }: UserManagementProps) {
 														Zum Mitarbeiter herabstufen
 													</DropdownMenuItem>
 												)}
+												<DropdownMenuItem
+													className="text-destructive focus:text-destructive"
+													onClick={() => setDeleteConfirm({ userId: user.id, userName: user.name })}
+												>
+													<Trash2 className="mr-2 h-4 w-4" />
+													Benutzer löschen
+												</DropdownMenuItem>
 											</DropdownMenuContent>
 										</DropdownMenu>
 									</TableCell>
