@@ -39,7 +39,7 @@ export function AdminNotificationForm() {
         <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Form */}
             <Card className="lg:col-span-2 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-purple-500/10 via-violet-500/5 to-transparent border-b">
+                <CardHeader className="border-b">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/25">
                             <Megaphone className="h-5 w-5 text-white" />
