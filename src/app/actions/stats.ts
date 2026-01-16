@@ -164,7 +164,7 @@ async function fetchUserStats(userId: string): Promise<UserStats> {
 const getCachedUserStats = unstable_cache(
 	fetchUserStats,
 	['user-stats'],
-	{ revalidate: 60 } // Cache for 60 seconds
+	{ revalidate: 3600 } // Cache for 1 hour
 )
 
 export async function getUserStats(): Promise<UserStats> {
@@ -233,7 +233,7 @@ async function fetchDailyCallVolume(userId: string, days: number): Promise<Daily
 const getCachedDailyCallVolume = unstable_cache(
 	fetchDailyCallVolume,
 	['daily-call-volume'],
-	{ revalidate: 60 }
+	{ revalidate: 3600 }
 )
 
 export async function getDailyCallVolume(days = 14): Promise<DailyVolume[]> {

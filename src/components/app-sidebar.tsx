@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -12,6 +13,7 @@ import {
 	Shield,
 	ChevronsUpDown,
 	Settings,
+	MessageSquarePlus,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import {
@@ -34,6 +36,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { FeedbackDialog } from '@/components/feedback-dialog'
 
 interface AppSidebarProps {
 	user: {
@@ -59,6 +62,7 @@ const adminNav = [
 export function AppSidebar({ user }: AppSidebarProps) {
 	const pathname = usePathname()
 	const router = useRouter()
+	const [feedbackOpen, setFeedbackOpen] = useState(false)
 
 	async function handleLogout() {
 		await signOut()
@@ -164,6 +168,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
 							<Settings className="h-4 w-4" />
 							Einstellungen
 						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={() => setFeedbackOpen(true)}
+							className="gap-2 rounded-lg"
+						>
+							<MessageSquarePlus className="h-4 w-4" />
+							Feedback & Hilfe
+						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							onClick={handleLogout}
@@ -175,6 +186,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</SidebarFooter>
+			<FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
 		</Sidebar>
 	)
 }

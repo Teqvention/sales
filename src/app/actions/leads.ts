@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db'
 import { requireAuth, requireAdmin } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
 import type { Lead, LeadStatus, CallOutcome } from '@/lib/types'
 
 export async function getNextLead(
@@ -44,7 +44,7 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 	return lead as Lead | null
 }
 
-export async function getLeads(
+async function fetchLeads(
 	filters?: {
 		industryId?: string
 		serviceId?: string
@@ -70,6 +70,15 @@ export async function getLeads(
 
 	return leads as Lead[]
 }
+
+export const getLeads = unstable_cache(
+	fetchLeads,
+	['leads-list'],
+	{
+		revalidate: 3600,
+		tags: ['leads-list']
+	}
+)
 
 export async function recordCall(
 	leadId: string,
@@ -106,6 +115,7 @@ export async function recordCall(
 		}),
 	])
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/calling')
 	revalidatePath('/dashboard')
 
@@ -132,6 +142,7 @@ export async function markAsConverted(leadId: string): Promise<void> {
 		}),
 	])
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -150,6 +161,7 @@ export async function unconvertLead(leadId: string): Promise<void> {
 		}),
 	])
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -171,6 +183,7 @@ export async function updateLead(
 		data,
 	})
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -182,6 +195,7 @@ export async function deleteLead(leadId: string): Promise<void> {
 		where: { id: leadId },
 	})
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -211,6 +225,7 @@ export async function importLeads(
 		})),
 	})
 
+	revalidateTag('leads-list', 'default')
 	revalidatePath('/admin/leads')
 
 	return { count: leads.length }

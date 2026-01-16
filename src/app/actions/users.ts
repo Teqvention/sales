@@ -2,10 +2,10 @@
 
 import { db } from '@/lib/db'
 import { auth, requireAdmin, generatePassword, encryptPassword, decryptPassword } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
 import type { User, UserWithPassword, Role } from '@/lib/types'
 
-export async function getAllUsers(): Promise<User[]> {
+async function fetchAllUsers(): Promise<User[]> {
 	await requireAdmin()
 
 	const users = await db.user.findMany({
@@ -24,6 +24,15 @@ export async function getAllUsers(): Promise<User[]> {
 		role: u.role as Role,
 	}))
 }
+
+export const getAllUsers = unstable_cache(
+	fetchAllUsers,
+	['users-list'],
+	{
+		revalidate: 3600,
+		tags: ['users-list'],
+	}
+)
 
 export async function createUser(name: string, email: string): Promise<UserWithPassword> {
 	await requireAdmin()
@@ -60,6 +69,7 @@ export async function createUser(name: string, email: string): Promise<UserWithP
 		data: { encryptedPw },
 	})
 
+	revalidateTag('users-list', 'default')
 	revalidatePath('/admin/users')
 
 	return {
@@ -93,6 +103,7 @@ export async function updateUserRole(userId: string, role: Role): Promise<void> 
 		data: { role },
 	})
 
+	revalidateTag('users-list', 'default')
 	revalidatePath('/admin/users')
 }
 
@@ -111,7 +122,7 @@ export async function resetUserPassword(userId: string): Promise<string> {
 		// Hash the password using better-auth's context
 		const ctx = await auth.$context
 		const hashedPassword = await ctx.password.hash(plainPassword)
-		
+
 		await db.account.update({
 			where: { id: account.id },
 			data: { password: hashedPassword },
@@ -124,6 +135,7 @@ export async function resetUserPassword(userId: string): Promise<string> {
 		data: { encryptedPw },
 	})
 
+	revalidateTag('users-list', 'default')
 	revalidatePath('/admin/users')
 
 	return plainPassword
@@ -136,5 +148,6 @@ export async function deleteUser(userId: string): Promise<void> {
 		where: { id: userId },
 	})
 
+	revalidateTag('users-list', 'default')
 	revalidatePath('/admin/users')
 }
