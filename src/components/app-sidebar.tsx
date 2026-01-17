@@ -134,7 +134,7 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 									</Link>
 								</SidebarMenuButton>
 								{unreadCount > 0 && (
-									<SidebarMenuBadge className="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground">
+									<SidebarMenuBadge className="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-hover/menu-button:bg-primary">
 										{unreadCount > 99 ? '99+' : unreadCount}
 									</SidebarMenuBadge>
 								)}
