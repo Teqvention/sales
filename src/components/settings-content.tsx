@@ -359,7 +359,7 @@ export function SettingsContent({ user }: SettingsContentProps) {
 										onClick={() => handleColorChange(color.id)}
 										className={cn(
 											'flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all',
-											'hover:scale-105',
+											'hover:bg-muted/50',
 											isSelected
 												? 'border-foreground/20 bg-muted/50'
 												: 'border-transparent'
