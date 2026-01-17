@@ -11,6 +11,7 @@ import {
 	Monitor,
 	Lock,
 	Save,
+	Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -205,7 +206,11 @@ export function SettingsContent({ user }: SettingsContentProps) {
 							onClick={handleUpdateProfile}
 							disabled={isPending || name === user.name}
 						>
-							<Save className="h-4 w-4" />
+							{isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								<Save className="h-4 w-4" />
+							)}
 							Speichern
 						</Button>
 					</CardContent>
@@ -270,7 +275,11 @@ export function SettingsContent({ user }: SettingsContentProps) {
 							onClick={handleChangePassword}
 							disabled={isPending || !currentPassword || !newPassword || !confirmPassword}
 						>
-							<Lock className="h-4 w-4" />
+							{isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								<Lock className="h-4 w-4" />
+							)}
 							Passwort ändern
 						</Button>
 					</CardContent>
