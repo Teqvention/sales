@@ -32,17 +32,15 @@ interface DashboardContentProps {
 	yearlyVolume: MonthlyVolume[]
 }
 
-// Chart colors - using actual values for SVG compatibility
-// Primary: Apple Blue (#007AFF / oklch 0.58 0.22 255)
-// Muted: Neutral gray for non-converted
+// Chart colors - now using CSS variables for dynamic theming
 const CHART_COLORS = {
-	primary: '#007AFF',           // Apple Blue
-	primaryLight: '#5AC8FA',      // Light blue for gradient
-	primaryDark: '#0055D4',       // Darker blue
-	text: '#8E8E93',              // System gray
-	grid: '#E5E5EA',              // Light border
-	muted: '#C7C7CC',             // Muted gray for non-converted
-	converted: '#007AFF',         // Primary blue for conversions
+	primary: 'var(--primary)',
+	primaryLight: 'var(--primary)', // Opacity handled in gradient
+	primaryDark: 'var(--primary)',
+	text: 'var(--muted-foreground)',
+	grid: 'var(--border)',
+	muted: 'var(--muted)',
+	converted: 'var(--primary)',
 }
 
 function TrendIndicator({ trend }: { trend?: Trend }) {
