@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
 	Phone,
@@ -85,8 +86,14 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 		<Sidebar>
 			<SidebarHeader className="border-b border-sidebar-border px-4 py-3">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-						<Phone className="h-5 w-5 text-primary-foreground" />
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary overflow-hidden">
+						<Image
+							src="/logo.png"
+							alt="Rufhammer Logo"
+							width={40}
+							height={40}
+							className="h-full w-full object-cover"
+						/>
 					</div>
 					<div>
 						<h2 className="text-base font-semibold">Rufhammer</h2>
