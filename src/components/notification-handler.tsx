@@ -25,8 +25,14 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
 
                 if (notifications.length === 0) return
 
-                // Show toasts FIRST with staggered delays for better UX
-                notifications.forEach((notification: Notification, index: number) => {
+                // Get already shown notifications from session storage to prevent duplicates on refresh
+                const shownIds = JSON.parse(sessionStorage.getItem('shown_notifications') || '[]')
+                const newNotifications = notifications.filter((n) => !shownIds.includes(n.id))
+
+                if (newNotifications.length === 0) return
+
+                // Show toasts with staggered delays
+                newNotifications.forEach((notification: Notification, index: number) => {
                     const notificationType = notification.type as ToastType
                     const toastFn = {
                         info: toast.info,
@@ -35,7 +41,6 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
                         error: toast.error,
                     }[notificationType] || toast.info
 
-                    // Stagger toasts with 300ms delay between each
                     setTimeout(() => {
                         toastFn(notification.title, {
                             description: notification.message,
@@ -44,15 +49,9 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
                     }, index * 300)
                 })
 
-                // Mark all as read AFTER showing (slight delay to ensure toasts are queued)
-                setTimeout(async () => {
-                    try {
-                        const notificationIds = notifications.map((n) => n.id)
-                        await markNotificationsAsRead(userId, notificationIds)
-                    } catch (error) {
-                        console.error('Failed to mark notifications as read:', error)
-                    }
-                }, 500)
+                // Mark as shown in session storage but NOT as read in DB (so badge stays)
+                const newShownIds = [...shownIds, ...newNotifications.map((n) => n.id)]
+                sessionStorage.setItem('shown_notifications', JSON.stringify(newShownIds))
 
             } catch (error) {
                 console.error('Failed to load notifications:', error)
