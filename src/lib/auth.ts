@@ -59,17 +59,19 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 	const session = await getSession()
 	if (!session?.user) return null
 
-	// Fetch additional user data from DB (role)
+	// Fetch fresh user data from DB (name and role may be stale in session)
 	const dbUser = await db.user.findUnique({
 		where: { id: session.user.id },
-		select: { role: true },
+		select: { name: true, email: true, role: true },
 	})
+
+	if (!dbUser) return null
 
 	return {
 		id: session.user.id,
-		name: session.user.name,
-		email: session.user.email,
-		role: (dbUser?.role as 'ADMIN' | 'EMPLOYEE') || 'EMPLOYEE',
+		name: dbUser.name,
+		email: dbUser.email,
+		role: (dbUser.role as 'ADMIN' | 'EMPLOYEE') || 'EMPLOYEE',
 	}
 }
 
