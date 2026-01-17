@@ -86,13 +86,13 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 		<Sidebar>
 			<SidebarHeader className="border-b border-sidebar-border px-4 py-3">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary overflow-hidden">
+					<div className="flex h-8 w-8 items-center justify-center">
 						<Image
 							src="/logo.png"
 							alt="Rufhammer Logo"
-							width={40}
-							height={40}
-							className="h-full w-full object-cover"
+							width={32}
+							height={32}
+							className="h-full w-full object-contain"
 						/>
 					</div>
 					<div>
