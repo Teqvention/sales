@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { getPendingNotifications, markNotificationsAsRead } from '@/app/actions/notifications'
 import type { Notification } from '@prisma/client'
@@ -12,6 +13,7 @@ interface NotificationHandlerProps {
 }
 
 export function NotificationHandler({ userId }: NotificationHandlerProps) {
+    const router = useRouter()
     const hasFetched = useRef(false)
 
     useEffect(() => {
@@ -30,6 +32,10 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
                 const newNotifications = notifications.filter((n) => !shownIds.includes(n.id))
 
                 if (newNotifications.length === 0) return
+
+                // Trigger server revalidation to update badge in sidebar
+                // This is needed because Sidebar is a server component getting data from layout
+                router.refresh()
 
                 // Show toasts with staggered delays
                 newNotifications.forEach((notification: Notification, index: number) => {
@@ -58,9 +64,13 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
             }
         }
 
-        // Small delay to ensure the page is fully mounted
-        const timer = setTimeout(loadNotifications, 100)
-        return () => clearTimeout(timer)
+        // Initial load
+        loadNotifications()
+
+        // Poll every 10 seconds for new notifications
+        const interval = setInterval(loadNotifications, 10000)
+
+        return () => clearInterval(interval)
     }, [userId])
 
     return null
