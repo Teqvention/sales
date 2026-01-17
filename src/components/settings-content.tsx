@@ -37,15 +37,15 @@ const themes = [
 ] as const
 
 const colors = [
-	{ id: 'blue', label: 'Blau', hsl: '255', hex: '#3b82f6' },
-	{ id: 'violet', label: 'Violett', hsl: '270', hex: '#8b5cf6' },
-	{ id: 'pink', label: 'Pink', hsl: '330', hex: '#ec4899' },
-	{ id: 'red', label: 'Rot', hsl: '0', hex: '#ef4444' },
-	{ id: 'orange', label: 'Orange', hsl: '25', hex: '#f97316' },
-	{ id: 'yellow', label: 'Gelb', hsl: '45', hex: '#eab308' },
-	{ id: 'green', label: 'Grün', hsl: '145', hex: '#22c55e' },
-	{ id: 'teal', label: 'Türkis', hsl: '175', hex: '#14b8a6' },
-	{ id: 'cyan', label: 'Cyan', hsl: '195', hex: '#06b6d4' },
+	{ id: 'blue', label: 'Blau', hsl: '217', tailwind: 'bg-blue-500' },
+	{ id: 'violet', label: 'Violett', hsl: '263', tailwind: 'bg-violet-500' },
+	{ id: 'pink', label: 'Pink', hsl: '330', tailwind: 'bg-pink-500' },
+	{ id: 'red', label: 'Rot', hsl: '0', tailwind: 'bg-red-500' },
+	{ id: 'orange', label: 'Orange', hsl: '25', tailwind: 'bg-orange-500' },
+	{ id: 'yellow', label: 'Gelb', hsl: '48', tailwind: 'bg-yellow-500' },
+	{ id: 'green', label: 'Grün', hsl: '142', tailwind: 'bg-green-500' },
+	{ id: 'teal', label: 'Türkis', hsl: '168', tailwind: 'bg-teal-500' },
+	{ id: 'cyan', label: 'Cyan', hsl: '189', tailwind: 'bg-cyan-500' },
 ] as const
 
 export function SettingsContent({ user }: SettingsContentProps) {
@@ -368,9 +368,9 @@ export function SettingsContent({ user }: SettingsContentProps) {
 										<div
 											className={cn(
 												'h-10 w-10 rounded-full transition-transform',
+												color.tailwind,
 												isSelected && 'ring-2 ring-offset-2 ring-foreground/20'
 											)}
-											style={{ backgroundColor: color.hex }}
 										/>
 										<span className="text-xs font-medium">{color.label}</span>
 										{isSelected && (
