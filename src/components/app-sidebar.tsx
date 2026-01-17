@@ -31,7 +31,6 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarMenuBadge,
 } from '@/components/ui/sidebar'
 import {
 	DropdownMenu,
@@ -121,7 +120,7 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{/* Notifications with badge */}
+							{/* Notifications with inline badge */}
 							<SidebarMenuItem>
 								<SidebarMenuButton
 									asChild
@@ -131,13 +130,13 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 									<Link href="/notifications">
 										<Bell className="h-5 w-5" />
 										<span>Benachrichtigungen</span>
+										{unreadCount > 0 && (
+											<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1.5 text-xs font-medium text-white">
+												{unreadCount > 99 ? '99+' : unreadCount}
+											</span>
+										)}
 									</Link>
 								</SidebarMenuButton>
-								{unreadCount > 0 && (
-									<SidebarMenuBadge className="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-hover/menu-button:bg-primary">
-										{unreadCount > 99 ? '99+' : unreadCount}
-									</SidebarMenuBadge>
-								)}
 							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroupContent>
