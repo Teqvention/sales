@@ -46,29 +46,29 @@ async function fetchAllCallVolumesForUser(userId: string): Promise<AllCallVolume
 	])
 
 	// Compute weekly (7 days)
-	const weeklyMap = new Map<string, { calls: number; conversions: number }>()
+	const weeklyMap = new Map<string, { calls: number; conversions: number; bookings: number }>()
 	const now = new Date()
 	for (let i = 0; i < 7; i++) {
 		const date = new Date(now)
 		date.setDate(date.getDate() - i)
-		weeklyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0 })
+		weeklyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0, bookings: 0 })
 	}
 
 	// Compute monthly (30 days)
-	const monthlyMap = new Map<string, { calls: number; conversions: number }>()
+	const monthlyMap = new Map<string, { calls: number; conversions: number; bookings: number }>()
 	for (let i = 0; i < 30; i++) {
 		const date = new Date(now)
 		date.setDate(date.getDate() - i)
-		monthlyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0 })
+		monthlyMap.set(date.toISOString().split('T')[0], { calls: 0, conversions: 0, bookings: 0 })
 	}
 
 	// Compute yearly (12 months)
-	const yearlyMap = new Map<string, { calls: number; conversions: number }>()
+	const yearlyMap = new Map<string, { calls: number; conversions: number; bookings: number }>()
 	for (let i = 11; i >= 0; i--) {
 		const date = new Date(now)
 		date.setMonth(date.getMonth() - i)
 		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-		yearlyMap.set(monthStr, { calls: 0, conversions: 0 })
+		yearlyMap.set(monthStr, { calls: 0, conversions: 0, bookings: 0 })
 	}
 
 	// Count calls into each bucket
