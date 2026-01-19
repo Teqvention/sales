@@ -185,6 +185,15 @@ async function fetchDailyCallVolume(userId: string, days: number): Promise<Daily
 		select: { createdAt: true },
 	})
 
+	// Fetch all bookings (appointments)
+	const bookings = await db.appointment.findMany({
+		where: {
+			userId,
+			createdAt: { gte: startDate },
+		},
+		select: { createdAt: true },
+	})
+
 	// Fetch converted appointments
 	const conversions = await db.appointment.findMany({
 		where: {
@@ -196,14 +205,14 @@ async function fetchDailyCallVolume(userId: string, days: number): Promise<Daily
 	})
 
 	// Group by date
-	const volumeMap = new Map<string, { calls: number; conversions: number }>()
+	const volumeMap = new Map<string, { calls: number; conversions: number; bookings: number }>()
 
 	// Initialize all days
 	for (let i = 0; i < days; i++) {
 		const date = new Date()
 		date.setDate(date.getDate() - i)
 		const dateStr = date.toISOString().split('T')[0]
-		volumeMap.set(dateStr, { calls: 0, conversions: 0 })
+		volumeMap.set(dateStr, { calls: 0, conversions: 0, bookings: 0 })
 	}
 
 	// Count calls per day
@@ -221,6 +230,15 @@ async function fetchDailyCallVolume(userId: string, days: number): Promise<Daily
 		const current = volumeMap.get(dateStr)
 		if (current) {
 			current.conversions++
+		}
+	}
+
+	// Count bookings per day
+	for (const booking of bookings) {
+		const dateStr = booking.createdAt.toISOString().split('T')[0]
+		const current = volumeMap.get(dateStr)
+		if (current) {
+			current.bookings++
 		}
 	}
 
@@ -264,6 +282,15 @@ async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
 		},
 	})
 
+	// Fetch all bookings (appointments)
+	const bookings = await db.appointment.findMany({
+		where: {
+			userId,
+			createdAt: { gte: startDate },
+		},
+		select: { createdAt: true },
+	})
+
 	// Fetch converted appointments
 	const conversions = await db.appointment.findMany({
 		where: {
@@ -275,14 +302,14 @@ async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
 	})
 
 	// Group by month
-	const volumeMap = new Map<string, { calls: number; conversions: number }>()
+	const volumeMap = new Map<string, { calls: number; conversions: number; bookings: number }>()
 
 	// Initialize all months
 	for (let i = 11; i >= 0; i--) {
 		const date = new Date()
 		date.setMonth(date.getMonth() - i)
 		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-		volumeMap.set(monthStr, { calls: 0, conversions: 0 })
+		volumeMap.set(monthStr, { calls: 0, conversions: 0, bookings: 0 })
 	}
 
 	// Count calls per month
@@ -302,6 +329,16 @@ async function fetchYearlyCallVolume(userId: string): Promise<MonthlyVolume[]> {
 		const current = volumeMap.get(monthStr)
 		if (current) {
 			current.conversions++
+		}
+	}
+
+	// Count bookings per month
+	for (const booking of bookings) {
+		const date = booking.createdAt
+		const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+		const current = volumeMap.get(monthStr)
+		if (current) {
+			current.bookings++
 		}
 	}
 

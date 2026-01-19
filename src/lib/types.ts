@@ -89,12 +89,14 @@ export interface DailyVolume {
 	date: string
 	calls: number
 	conversions: number
+	bookings: number
 }
 
 export interface MonthlyVolume {
 	month: string
 	calls: number
 	conversions: number
+	bookings: number
 }
 
 export interface EmployeeRanking {
