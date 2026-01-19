@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db'
 import { requireAuth, requireAdmin } from '@/lib/auth'
-import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import type { Lead, LeadStatus, CallOutcome } from '@/lib/types'
 
 export async function getNextLead(
@@ -98,7 +98,6 @@ export async function scheduleCallback(
 		}),
 	])
 
-	revalidateTag('leads-list')
 	revalidatePath('/calling')
 
 	const lead = await db.lead.findUnique({
@@ -222,9 +221,9 @@ export async function recordCall(
 		}),
 	])
 
-	revalidateTag('leads-list')
 	revalidatePath('/calling')
 	revalidatePath('/dashboard')
+	revalidatePath('/admin/leads')
 
 	// If not booked, return next lead with same filters
 	if (outcome !== 'BOOKED') {
@@ -296,7 +295,6 @@ export async function markAsConverted(leadId: string): Promise<void> {
 		})
 	}
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -315,7 +313,6 @@ export async function unconvertLead(leadId: string): Promise<void> {
 		}),
 	])
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -354,7 +351,6 @@ export async function updateLead(
 		}
 	})
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -366,7 +362,6 @@ export async function deleteLead(leadId: string): Promise<void> {
 		where: { id: leadId },
 	})
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -376,7 +371,6 @@ export async function deleteAllLeads(): Promise<void> {
 
 	await db.lead.deleteMany({})
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -420,7 +414,6 @@ export async function importLeads(
 		})
 	}
 
-	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 
 	return { count: leads.length }
