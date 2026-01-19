@@ -5,6 +5,7 @@ import { de } from 'date-fns/locale'
 import { Phone, PhoneOff, ThumbsDown, Calendar, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
     Table,
     TableBody,
@@ -45,6 +46,7 @@ export function CallHistoryList({ calls }: CallHistoryListProps) {
                                 <TableHead>Firma</TableHead>
                                 <TableHead>Telefon</TableHead>
                                 <TableHead>Ergebnis</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -72,6 +74,16 @@ export function CallHistoryList({ calls }: CallHistoryListProps) {
                                                 <OutcomeIcon className="h-3 w-3" />
                                                 {config.label}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {call.outcome === 'SCHEDULED' && (
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                                    <a href={`/calling?leadId=${call.leadId}`}>
+                                                        <Phone className="h-4 w-4" />
+                                                        <span className="sr-only">Anrufen</span>
+                                                    </a>
+                                                </Button>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 )

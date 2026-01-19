@@ -85,7 +85,11 @@ export function CallingInterface({
 		const optionIds = Object.values(newOptions).filter(Boolean)
 		startTransition(async () => {
 			const nextLead = await getNextLead(optionIds.length > 0 ? optionIds : undefined)
-			setLead(nextLead)
+			if (nextLead) {
+				router.push(`/calling?leadId=${nextLead.id}`)
+			} else {
+				router.push('/calling')
+			}
 		})
 	}
 
@@ -99,9 +103,9 @@ export function CallingInterface({
 				if (outcome === 'BOOKED') {
 					router.push(`/booking/${lead.id}`)
 				} else if (result.nextLead) {
-					setLead(result.nextLead)
+					router.push(`/calling?leadId=${result.nextLead.id}`)
 				} else {
-					setLead(null)
+					router.push('/calling')
 				}
 			}
 		})
@@ -126,7 +130,11 @@ export function CallingInterface({
 				// Fetch next lead using current filters
 				const optionIds = Object.values(selectedOptions).filter(Boolean)
 				const nextLead = await getNextLead(optionIds.length > 0 ? optionIds : undefined)
-				setLead(nextLead)
+				if (nextLead) {
+					router.push(`/calling?leadId=${nextLead.id}`)
+				} else {
+					router.push('/calling')
+				}
 			}
 		})
 	}
