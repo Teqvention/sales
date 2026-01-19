@@ -158,13 +158,13 @@ export function CallingInterface({
 				{lead ? (
 					<Card className="w-full max-w-md border bg-card p-8">
 						{/* Callback Notice */}
-						{lead.nextCallAt && lead.nextCallNotes && (
+						{lead.nextCallAt && (
 							<div className="mb-6 rounded-lg bg-amber-500/10 p-4 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-								<div className="flex items-center gap-2 font-medium mb-1">
+								<div className={cn("flex items-center gap-2 font-medium", lead.nextCallNotes && "mb-1")}>
 									<Clock className="h-4 w-4" />
-									Rückruf
+									Rückruf {lead.nextCallAt && `vom ${format(new Date(lead.nextCallAt), 'dd.MM.yyyy', { locale: de })}`}
 								</div>
-								<p className="text-sm">{lead.nextCallNotes}</p>
+								{lead.nextCallNotes && <p className="text-sm">{lead.nextCallNotes}</p>}
 							</div>
 						)}
 

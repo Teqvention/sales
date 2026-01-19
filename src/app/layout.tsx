@@ -3,8 +3,12 @@ import './globals.css'
 import { ThemeInitializer } from '@/components/theme-initializer'
 
 export const metadata: Metadata = {
-	title: 'Rufhammer - AI Calling',
+	title: 'Rufhammer - Sales',
 	description: 'Internal calling application for AI automation agency',
+	robots: {
+		index: false,
+		follow: false,
+	},
 }
 
 export const viewport: Viewport = {
