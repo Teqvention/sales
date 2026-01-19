@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,20 +39,7 @@ export function AdminNotificationForm() {
         <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Form */}
             <Card className="lg:col-span-2">
-                <CardHeader className="border-b">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
-                            <Megaphone className="h-5 w-5 text-primary-foreground" />
-                        </div>
-                        <div>
-                            <CardTitle>Neue Nachricht erstellen</CardTitle>
-                            <CardDescription>
-                                Senden Sie eine Benachrichtigung an alle Benutzer
-                            </CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-6">
+                <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
                             <Label htmlFor="title" className="text-sm font-medium">
