@@ -32,7 +32,7 @@ export async function getNextLead(
 	})
 
 	if (dueCallback) {
-		return dueCallback as Lead | null
+		return dueCallback as unknown as Lead
 	}
 
 	// 2. Normal pool logic (status OPEN, and NOT assigned to a specific user for callback - though status CALLBACK handles that)
@@ -69,7 +69,7 @@ export async function getNextLead(
 		orderBy: { createdAt: 'asc' },
 	})
 
-	return lead as Lead | null
+	return lead as unknown as Lead | null
 }
 
 export async function scheduleCallback(
@@ -126,7 +126,7 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 		},
 	})
 
-	return lead as Lead | null
+	return lead as unknown as Lead | null
 }
 
 // Internal cached function
@@ -164,7 +164,7 @@ const _getCachedLeads = unstable_cache(
 			orderBy: { createdAt: 'desc' },
 		})
 
-		return leads as Lead[]
+		return leads as unknown as Lead[]
 	},
 	['leads-list'],
 	{
