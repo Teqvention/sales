@@ -1,5 +1,5 @@
 import { getLeads } from '@/app/actions/leads'
-import { getIndustries, getServices } from '@/app/actions/categories'
+import { getFilterCategories } from '@/app/actions/filters'
 import { LeadManagement } from '@/components/lead-management'
 import { requireAdmin } from '@/lib/auth'
 import { List } from 'lucide-react'
@@ -7,10 +7,9 @@ import { List } from 'lucide-react'
 export default async function LeadsPage() {
 	await requireAdmin()
 
-	const [leads, industries, services] = await Promise.all([
+	const [leads, categories] = await Promise.all([
 		getLeads(),
-		getIndustries(),
-		getServices(),
+		getFilterCategories(),
 	])
 
 	return (
@@ -26,8 +25,7 @@ export default async function LeadsPage() {
 			</div>
 			<LeadManagement
 				initialLeads={leads}
-				industries={industries}
-				services={services}
+				categories={categories}
 			/>
 		</div>
 	)

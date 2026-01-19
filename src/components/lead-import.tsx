@@ -21,14 +21,13 @@ import {
 	DialogTitle,
 	DialogFooter,
 } from '@/components/ui/dialog'
-import { CategorySelector } from '@/components/category-selector'
+import { DynamicFilterSelector } from '@/components/category-selector'
 import { importLeads } from '@/app/actions/leads'
-import type { Industry, Service } from '@/lib/types'
+import type { FilterCategory } from '@/lib/types'
 import * as XLSX from 'xlsx'
 
 interface LeadImportProps {
-	industries: Industry[]
-	services: Service[]
+	categories: FilterCategory[]
 }
 
 interface ParsedLead {
@@ -36,11 +35,11 @@ interface ParsedLead {
 	phone: string
 }
 
-export function LeadImport({ industries, services }: LeadImportProps) {
+export function LeadImport({ categories: initialCategories }: LeadImportProps) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
-	const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null)
-	const [selectedService, setSelectedService] = useState<string | null>(null)
+	const [categories, setCategories] = useState(initialCategories)
+	const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 	const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([])
 	const [filename, setFilename] = useState<string>('')
 	const [error, setError] = useState<string>('')
@@ -101,21 +100,34 @@ export function LeadImport({ industries, services }: LeadImportProps) {
 		reader.readAsBinaryString(file)
 	}, [])
 
+	function handleSelectionChange(categoryId: string, optionId: string | null) {
+		setSelectedOptions((prev) => {
+			if (optionId === null) {
+				const next = { ...prev }
+				delete next[categoryId]
+				return next
+			}
+			return { ...prev, [categoryId]: optionId }
+		})
+	}
+
 	function handleImport() {
 		if (parsedLeads.length === 0) return
+
+		const optionIds = Object.values(selectedOptions).filter(Boolean)
 
 		startTransition(async () => {
 			try {
 				const result = await importLeads(
 					parsedLeads,
-					selectedIndustry,
-					selectedService,
+					optionIds,
 					filename
 				)
 				setImportedCount(result.count)
 				setSuccessOpen(true)
 				setParsedLeads([])
 				setFilename('')
+				setSelectedOptions({})
 				router.refresh()
 			} catch {
 				setError('Fehler beim Import')
@@ -188,16 +200,15 @@ export function LeadImport({ industries, services }: LeadImportProps) {
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						{/* Category selection */}
+						{/* Filter selection */}
 						<div className="space-y-2">
-							<Label>Labels zuweisen</Label>
-							<CategorySelector
-								industries={industries}
-								services={services}
-								selectedIndustry={selectedIndustry}
-								selectedService={selectedService}
-								onIndustryChange={setSelectedIndustry}
-								onServiceChange={setSelectedService}
+							<Label>Filter zuweisen (optional)</Label>
+							<DynamicFilterSelector
+								categories={categories}
+								selectedOptions={selectedOptions}
+								onSelectionChange={handleSelectionChange}
+								allowCreate={true}
+								onCategoriesUpdate={setCategories}
 							/>
 						</div>
 

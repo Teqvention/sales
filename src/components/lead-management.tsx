@@ -4,8 +4,6 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
 	Phone,
-	Building,
-	Briefcase,
 	Check,
 	X,
 	PhoneOff,
@@ -45,14 +43,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CategorySelector } from '@/components/category-selector'
+import { DynamicFilterSelector } from '@/components/category-selector'
+import { getIcon } from '@/components/icon-picker'
 import { markAsConverted, unconvertLead, updateLead, deleteLead } from '@/app/actions/leads'
-import type { Lead, Industry, Service, LeadStatus } from '@/lib/types'
+import type { Lead, FilterCategory, LeadStatus } from '@/lib/types'
 
 interface LeadManagementProps {
 	initialLeads: Lead[]
-	industries: Industry[]
-	services: Service[]
+	categories: FilterCategory[]
 }
 
 const statusConfig: Record<LeadStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Phone }> = {
@@ -65,15 +63,14 @@ const statusConfig: Record<LeadStatus, { label: string; variant: 'default' | 'se
 
 export function LeadManagement({
 	initialLeads,
-	industries,
-	services,
+	categories,
 }: LeadManagementProps) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
-	const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null)
-	const [selectedService, setSelectedService] = useState<string | null>(null)
+	const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 	const [selectedStatus, setSelectedStatus] = useState<LeadStatus | null>(null)
 	const [editingLead, setEditingLead] = useState<Lead | null>(null)
+	const [editingOptions, setEditingOptions] = useState<Record<string, string>>({})
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null)
 
 	// Status priority for sorting: CONVERTED > BOOKED > OPEN > NO_ANSWER > NO_INTEREST
@@ -87,12 +84,31 @@ export function LeadManagement({
 
 	const filteredLeads = initialLeads
 		.filter((lead) => {
-			if (selectedIndustry && lead.industryId !== selectedIndustry) return false
-			if (selectedService && lead.serviceId !== selectedService) return false
+			// Status filter
 			if (selectedStatus && lead.status !== selectedStatus) return false
+
+			// Dynamic filter options
+			for (const [categoryId, optionId] of Object.entries(selectedOptions)) {
+				if (!optionId) continue
+				const hasOption = lead.filterValues.some(
+					(fv) => fv.option.categoryId === categoryId && fv.optionId === optionId
+				)
+				if (!hasOption) return false
+			}
 			return true
 		})
 		.sort((a, b) => (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5))
+
+	function handleSelectionChange(categoryId: string, optionId: string | null) {
+		setSelectedOptions((prev) => {
+			if (optionId === null) {
+				const next = { ...prev }
+				delete next[categoryId]
+				return next
+			}
+			return { ...prev, [categoryId]: optionId }
+		})
+	}
 
 	function handleMarkConverted(leadId: string) {
 		startTransition(async () => {
@@ -118,21 +134,55 @@ export function LeadManagement({
 
 	function handleEdit(lead: Lead) {
 		setEditingLead(lead)
+		// Build initial options from lead filter values
+		const options: Record<string, string> = {}
+		lead.filterValues.forEach((fv) => {
+			options[fv.option.category.id] = fv.optionId
+		})
+		setEditingOptions(options)
+	}
+
+	function handleEditOptionChange(categoryId: string, optionId: string | null) {
+		setEditingOptions((prev) => {
+			if (optionId === null) {
+				const next = { ...prev }
+				delete next[categoryId]
+				return next
+			}
+			return { ...prev, [categoryId]: optionId }
+		})
 	}
 
 	function handleSaveEdit() {
 		if (!editingLead) return
 
+		const optionIds = Object.values(editingOptions).filter(Boolean)
+
 		startTransition(async () => {
-			await updateLead(editingLead.id, {
-				companyName: editingLead.companyName,
-				phone: editingLead.phone,
-				industryId: editingLead.industryId,
-				serviceId: editingLead.serviceId,
-				status: editingLead.status as LeadStatus,
-			})
+			await updateLead(
+				editingLead.id,
+				{
+					companyName: editingLead.companyName,
+					phone: editingLead.phone,
+					status: editingLead.status as LeadStatus,
+				},
+				optionIds
+			)
 			setEditingLead(null)
 			router.refresh()
+		})
+	}
+
+	// Get filter badges for a lead
+	function getLeadFilterBadges(lead: Lead) {
+		return lead.filterValues.map((fv) => {
+			const Icon = getIcon(fv.option.icon)
+			return (
+				<Badge key={fv.id} variant="outline" className="gap-1 text-xs">
+					<Icon className="h-3 w-3" />
+					{fv.option.name}
+				</Badge>
+			)
 		})
 	}
 
@@ -140,13 +190,10 @@ export function LeadManagement({
 		<div className="space-y-6">
 			{/* Filters */}
 			<div className="flex flex-wrap items-center gap-3">
-				<CategorySelector
-					industries={industries}
-					services={services}
-					selectedIndustry={selectedIndustry}
-					selectedService={selectedService}
-					onIndustryChange={setSelectedIndustry}
-					onServiceChange={setSelectedService}
+				<DynamicFilterSelector
+					categories={categories}
+					selectedOptions={selectedOptions}
+					onSelectionChange={handleSelectionChange}
 				/>
 
 				<div className="flex gap-2">
@@ -199,80 +246,12 @@ export function LeadManagement({
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label>Branche</Label>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="outline"
-											className="h-12 w-full justify-between"
-										>
-											<span>
-												{editingLead.industryId
-													? industries.find((i) => i.id === editingLead.industryId)?.name || 'Keine Branche'
-													: 'Keine Branche'}
-											</span>
-											<ChevronDown className="h-4 w-4 opacity-50" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-										<DropdownMenuRadioGroup
-											value={editingLead.industryId || ''}
-											onValueChange={(value) =>
-												setEditingLead({
-													...editingLead,
-													industryId: value || null,
-												})
-											}
-										>
-											<DropdownMenuRadioItem value="">
-												Keine Branche
-											</DropdownMenuRadioItem>
-											{industries.map((industry) => (
-												<DropdownMenuRadioItem key={industry.id} value={industry.id}>
-													{industry.name}
-												</DropdownMenuRadioItem>
-											))}
-										</DropdownMenuRadioGroup>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</div>
-							<div className="space-y-2">
-								<Label>Service</Label>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="outline"
-											className="h-12 w-full justify-between"
-										>
-											<span>
-												{editingLead.serviceId
-													? services.find((s) => s.id === editingLead.serviceId)?.name || 'Kein Service'
-													: 'Kein Service'}
-											</span>
-											<ChevronDown className="h-4 w-4 opacity-50" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-										<DropdownMenuRadioGroup
-											value={editingLead.serviceId || ''}
-											onValueChange={(value) =>
-												setEditingLead({
-													...editingLead,
-													serviceId: value || null,
-												})
-											}
-										>
-											<DropdownMenuRadioItem value="">
-												Kein Service
-											</DropdownMenuRadioItem>
-											{services.map((service) => (
-												<DropdownMenuRadioItem key={service.id} value={service.id}>
-													{service.name}
-												</DropdownMenuRadioItem>
-											))}
-										</DropdownMenuRadioGroup>
-									</DropdownMenuContent>
-								</DropdownMenu>
+								<Label>Filter</Label>
+								<DynamicFilterSelector
+									categories={categories}
+									selectedOptions={editingOptions}
+									onSelectionChange={handleEditOptionChange}
+								/>
 							</div>
 							<div className="space-y-2">
 								<Label>Status</Label>
@@ -372,8 +351,7 @@ export function LeadManagement({
 								<TableRow>
 									<TableHead>Firma</TableHead>
 									<TableHead>Telefon</TableHead>
-									<TableHead>Branche</TableHead>
-									<TableHead>Service</TableHead>
+									<TableHead>Filter</TableHead>
 									<TableHead>Status</TableHead>
 									<TableHead className="w-12"></TableHead>
 									<TableHead className="w-12"></TableHead>
@@ -388,20 +366,9 @@ export function LeadManagement({
 											<TableCell className="font-medium">{lead.companyName}</TableCell>
 											<TableCell className="text-muted-foreground">{lead.phone}</TableCell>
 											<TableCell>
-												{lead.industry && (
-													<span className="flex items-center gap-1 text-sm text-muted-foreground">
-														<Building className="h-3 w-3" />
-														{lead.industry.name}
-													</span>
-												)}
-											</TableCell>
-											<TableCell>
-												{lead.service && (
-													<span className="flex items-center gap-1 text-sm text-muted-foreground">
-														<Briefcase className="h-3 w-3" />
-														{lead.service.name}
-													</span>
-												)}
+												<div className="flex flex-wrap gap-1">
+													{getLeadFilterBadges(lead)}
+												</div>
 											</TableCell>
 											<TableCell>
 												<Badge variant={config.variant} className="gap-1">

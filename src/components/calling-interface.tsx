@@ -6,43 +6,48 @@ import { Phone, PhoneOff, ThumbsDown, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CategorySelector } from '@/components/category-selector'
+import { DynamicFilterSelector } from '@/components/category-selector'
+import { getIcon } from '@/components/icon-picker'
 import { recordCall, getNextLead } from '@/app/actions/leads'
-import type { Lead, Industry, Service, CallOutcome } from '@/lib/types'
+import type { Lead, FilterCategory, CallOutcome } from '@/lib/types'
 
 interface CallingInterfaceProps {
 	initialLead: Lead | null
-	industries: Industry[]
-	services: Service[]
+	categories: FilterCategory[]
 }
 
 export function CallingInterface({
 	initialLead,
-	industries,
-	services,
+	categories,
 }: CallingInterfaceProps) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [lead, setLead] = useState<Lead | null>(initialLead)
-	const [selectedIndustry, setSelectedIndustry] = useState<string | null>(
-		initialLead?.industryId ?? null
-	)
-	const [selectedService, setSelectedService] = useState<string | null>(
-		initialLead?.serviceId ?? null
-	)
-
-	function handleIndustryChange(id: string | null) {
-		setSelectedIndustry(id)
-		startTransition(async () => {
-			const nextLead = await getNextLead(id, selectedService)
-			setLead(nextLead)
+	const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+		// Initialize from initial lead's filter values
+		if (!initialLead) return {}
+		const options: Record<string, string> = {}
+		initialLead.filterValues?.forEach((fv) => {
+			if (fv.option?.category) {
+				options[fv.option.category.id] = fv.optionId
+			}
 		})
-	}
+		return options
+	})
 
-	function handleServiceChange(id: string | null) {
-		setSelectedService(id)
+	function handleSelectionChange(categoryId: string, optionId: string | null) {
+		const newOptions = { ...selectedOptions }
+		if (optionId === null) {
+			delete newOptions[categoryId]
+		} else {
+			newOptions[categoryId] = optionId
+		}
+		setSelectedOptions(newOptions)
+
+		// Fetch next lead with new filters
+		const optionIds = Object.values(newOptions).filter(Boolean)
 		startTransition(async () => {
-			const nextLead = await getNextLead(selectedIndustry, id)
+			const nextLead = await getNextLead(optionIds.length > 0 ? optionIds : undefined)
 			setLead(nextLead)
 		})
 	}
@@ -65,17 +70,17 @@ export function CallingInterface({
 		})
 	}
 
+	// Get filter badges for the current lead
+	const hasFilters = Object.values(selectedOptions).some(Boolean)
+
 	return (
 		<div className="flex min-h-[calc(100dvh-3.5rem)] flex-col md:min-h-dvh">
 			{/* Header with selectors */}
 			<div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:top-0">
-				<CategorySelector
-					industries={industries}
-					services={services}
-					selectedIndustry={selectedIndustry}
-					selectedService={selectedService}
-					onIndustryChange={handleIndustryChange}
-					onServiceChange={handleServiceChange}
+				<DynamicFilterSelector
+					categories={categories}
+					selectedOptions={selectedOptions}
+					onSelectionChange={handleSelectionChange}
 				/>
 			</div>
 
@@ -83,19 +88,20 @@ export function CallingInterface({
 			<div className="flex flex-1 flex-col items-center justify-center p-4">
 				{lead ? (
 					<Card className="w-full max-w-md border bg-card p-8">
-						{/* Industry/Service badges */}
-						<div className="mb-6 flex flex-wrap justify-center gap-2">
-							{lead.industry && (
-								<Badge variant="secondary" className="text-sm">
-									{lead.industry.name}
-								</Badge>
-							)}
-							{lead.service && (
-								<Badge variant="outline" className="text-sm">
-									{lead.service.name}
-								</Badge>
-							)}
-						</div>
+						{/* Filter badges */}
+						{lead.filterValues && lead.filterValues.length > 0 && (
+							<div className="mb-6 flex flex-wrap justify-center gap-2">
+								{lead.filterValues.map((fv) => {
+									const Icon = getIcon(fv.option.icon)
+									return (
+										<Badge key={fv.id} variant="secondary" className="text-sm gap-1">
+											<Icon className="h-3 w-3" />
+											{fv.option.name}
+										</Badge>
+									)
+								})}
+							</div>
+						)}
 
 						{/* Phone number - tap to call */}
 						<a
@@ -155,7 +161,7 @@ export function CallingInterface({
 						</div>
 						<h2 className="mb-2 text-xl font-semibold">Keine Leads verfügbar</h2>
 						<p className="text-muted-foreground">
-							{selectedIndustry || selectedService
+							{hasFilters
 								? 'Keine offenen Leads für diese Filter gefunden.'
 								: 'Alle Leads wurden bearbeitet.'}
 						</p>

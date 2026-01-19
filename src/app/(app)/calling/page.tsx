@@ -1,19 +1,17 @@
 import { CallingInterface } from '@/components/calling-interface'
 import { getNextLead } from '@/app/actions/leads'
-import { getIndustries, getServices } from '@/app/actions/categories'
+import { getFilterCategories } from '@/app/actions/filters'
 
 export default async function CallingPage() {
-	const [lead, industries, services] = await Promise.all([
+	const [lead, categories] = await Promise.all([
 		getNextLead(),
-		getIndustries(),
-		getServices(),
+		getFilterCategories(),
 	])
 
 	return (
 		<CallingInterface
 			initialLead={lead}
-			industries={industries}
-			services={services}
+			categories={categories}
 		/>
 	)
 }

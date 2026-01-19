@@ -1,27 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import {
-	Building,
-	Laptop,
-	HeartPulse,
-	Home,
-	ShoppingCart,
-	UtensilsCrossed,
-	Landmark,
-	GraduationCap,
-	MessageSquare,
-	Bot,
-	Users,
-	Share2,
-	Globe,
-	Mail,
-	Briefcase,
-	Filter,
-	Check,
-	X,
-	type LucideIcon,
-} from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Filter, Check, X, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
 	Dialog,
@@ -30,73 +10,109 @@ import {
 	DialogTitle,
 	DialogTrigger,
 	DialogFooter,
+	DialogClose,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { IconPicker, getIcon } from '@/components/icon-picker'
+import { createFilterOption } from '@/app/actions/filters'
 import { cn } from '@/lib/utils'
-import type { Industry, Service } from '@/lib/types'
+import type { FilterCategory, FilterOption } from '@/lib/types'
 
-const iconMap: Record<string, LucideIcon> = {
-	'building': Building,
-	'hammer': Building,
-	'laptop': Laptop,
-	'heart-pulse': HeartPulse,
-	'home': Home,
-	'shopping-cart': ShoppingCart,
-	'utensils': UtensilsCrossed,
-	'landmark': Landmark,
-	'graduation-cap': GraduationCap,
-	'message-square': MessageSquare,
-	'bot': Bot,
-	'users': Users,
-	'share-2': Share2,
-	'globe': Globe,
-	'mail': Mail,
-	'briefcase': Briefcase,
+interface DynamicFilterSelectorProps {
+	categories: FilterCategory[]
+	selectedOptions: Record<string, string> // categoryId -> optionId
+	onSelectionChange: (categoryId: string, optionId: string | null) => void
+	allowCreate?: boolean
+	onCategoriesUpdate?: (categories: FilterCategory[]) => void
 }
 
-interface CategorySelectorProps {
-	industries: Industry[]
-	services: Service[]
-	selectedIndustry: string | null
-	selectedService: string | null
-	onIndustryChange: (id: string | null) => void
-	onServiceChange: (id: string | null) => void
-}
-
-export function CategorySelector({
-	industries,
-	services,
-	selectedIndustry,
-	selectedService,
-	onIndustryChange,
-	onServiceChange,
-}: CategorySelectorProps) {
+export function DynamicFilterSelector({
+	categories,
+	selectedOptions,
+	onSelectionChange,
+	allowCreate = false,
+	onCategoriesUpdate,
+}: DynamicFilterSelectorProps) {
 	const [open, setOpen] = useState(false)
-	const [tempIndustry, setTempIndustry] = useState<string | null>(selectedIndustry)
-	const [tempService, setTempService] = useState<string | null>(selectedService)
+	const [tempSelections, setTempSelections] = useState<Record<string, string>>(selectedOptions)
+	const [creatingForCategory, setCreatingForCategory] = useState<string | null>(null)
+	const [newOptionName, setNewOptionName] = useState('')
+	const [newOptionIcon, setNewOptionIcon] = useState('circle')
+	const [isPending, startTransition] = useTransition()
 
-	const selectedIndustryData = industries.find((i) => i.id === selectedIndustry)
-	const selectedServiceData = services.find((s) => s.id === selectedService)
-
-	const activeFilters = (selectedIndustry ? 1 : 0) + (selectedService ? 1 : 0)
+	const activeFilters = Object.values(selectedOptions).filter(Boolean).length
 
 	function handleOpen(isOpen: boolean) {
 		if (isOpen) {
-			setTempIndustry(selectedIndustry)
-			setTempService(selectedService)
+			setTempSelections(selectedOptions)
 		}
 		setOpen(isOpen)
 	}
 
 	function handleApply() {
-		onIndustryChange(tempIndustry)
-		onServiceChange(tempService)
+		Object.entries(tempSelections).forEach(([categoryId, optionId]) => {
+			if (selectedOptions[categoryId] !== optionId) {
+				onSelectionChange(categoryId, optionId || null)
+			}
+		})
+		// Handle removed selections
+		Object.keys(selectedOptions).forEach((categoryId) => {
+			if (!(categoryId in tempSelections) || !tempSelections[categoryId]) {
+				onSelectionChange(categoryId, null)
+			}
+		})
 		setOpen(false)
 	}
 
-	function handleClear() {
-		setTempIndustry(null)
-		setTempService(null)
+	function handleReset() {
+		setTempSelections({})
+	}
+
+	function selectOption(categoryId: string, optionId: string) {
+		setTempSelections((prev) => {
+			if (prev[categoryId] === optionId) {
+				const next = { ...prev }
+				delete next[categoryId]
+				return next
+			}
+			return { ...prev, [categoryId]: optionId }
+		})
+	}
+
+	function handleCreateOption(categoryId: string) {
+		if (!newOptionName.trim()) return
+
+		startTransition(async () => {
+			const option = await createFilterOption(categoryId, newOptionName.trim(), newOptionIcon)
+			// Update local state
+			if (onCategoriesUpdate) {
+				const updatedCategories = categories.map((c) =>
+					c.id === categoryId ? { ...c, options: [...c.options, option as FilterOption] } : c
+				)
+				onCategoriesUpdate(updatedCategories)
+			}
+			// Select the new option
+			setTempSelections((prev) => ({ ...prev, [categoryId]: option.id }))
+			setNewOptionName('')
+			setNewOptionIcon('circle')
+			setCreatingForCategory(null)
+		})
+	}
+
+	// Get display text for selected filters
+	const getSelectedText = () => {
+		const selected = categories
+			.filter((c) => selectedOptions[c.id])
+			.map((c) => {
+				const option = c.options.find((o) => o.id === selectedOptions[c.id])
+				return option?.name
+			})
+			.filter(Boolean)
+
+		if (selected.length === 0) return 'Filter'
+		if (selected.length === 1) return selected[0]
+		return `${selected.length} Filter`
 	}
 
 	return (
@@ -104,208 +120,168 @@ export function CategorySelector({
 			<DialogTrigger asChild>
 				<Button
 					variant="outline"
-					size="lg"
 					className={cn(
-						'h-12 gap-2 rounded-xl border-2 px-4 touch-target',
+						'touch-target justify-start gap-2 h-12 px-4 rounded-xl border-2 transition-all',
 						activeFilters > 0 && 'border-primary bg-primary/5'
 					)}
 				>
 					<Filter className="h-5 w-5" />
-					<span className="hidden sm:inline">
-						{activeFilters === 0
-							? 'Filter'
-							: activeFilters === 1
-								? selectedIndustryData?.name || selectedServiceData?.name
-								: `${activeFilters} Filter`}
+					<span className="font-medium">
+						{getSelectedText()}
 					</span>
 					{activeFilters > 0 && (
-						<Badge
-							variant="default"
-							className="ml-1 h-5 w-5 rounded-full p-0 text-xs"
-						>
+						<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1.5 text-xs font-medium text-primary-foreground">
 							{activeFilters}
-						</Badge>
+						</span>
 					)}
 				</Button>
 			</DialogTrigger>
-
-			<DialogContent className="max-w-lg gap-0 p-0 overflow-hidden">
-				<DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+			<DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+				<DialogHeader>
 					<div className="flex items-center justify-between">
 						<DialogTitle className="text-xl">Filter auswählen</DialogTitle>
-						{(tempIndustry || tempService) && (
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-8 text-muted-foreground hover:text-foreground"
-								onClick={handleClear}
-							>
-								<X className="mr-1 h-4 w-4" />
+						{Object.values(tempSelections).some(Boolean) && (
+							<Button variant="ghost" size="sm" onClick={handleReset}>
 								Zurücksetzen
 							</Button>
 						)}
 					</div>
 				</DialogHeader>
 
-				<div className="max-h-[60vh] overflow-y-auto">
-					{/* Industry Section */}
-					<div className="p-6 border-b">
-						<div className="flex items-center gap-2 mb-4">
-							<Building className="h-5 w-5 text-primary" />
-							<h3 className="font-semibold">Branche</h3>
-							{tempIndustry && (
-								<Badge variant="secondary" className="ml-auto">
-									{industries.find((i) => i.id === tempIndustry)?.name}
-								</Badge>
-							)}
-						</div>
-						<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-							<button
-								type="button"
-								onClick={() => setTempIndustry(null)}
-								className={cn(
-									'flex items-center gap-3 p-3 rounded-xl border-2 transition-all',
-									'hover:border-primary/50 hover:bg-primary/5',
-									!tempIndustry
-										? 'border-primary bg-primary/10'
-										: 'border-transparent bg-muted/50'
-								)}
-							>
-								<div className={cn(
-									'flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-lg shrink-0',
-									!tempIndustry ? 'bg-primary text-primary-foreground' : 'bg-muted'
-								)}>
-									<Building className="h-5 w-5 shrink-0" />
-								</div>
-								<div className="text-left">
-									<p className="font-medium text-sm">Alle</p>
-									<p className="text-xs text-muted-foreground">Keine Filter</p>
-								</div>
-								{!tempIndustry && (
-									<Check className="ml-auto h-4 w-4 text-primary" />
-								)}
-							</button>
-
-							{industries.map((industry) => {
-								const Icon = iconMap[industry.icon] || Building
-								const isSelected = tempIndustry === industry.id
-								return (
-									<button
-										key={industry.id}
-										type="button"
-										onClick={() => setTempIndustry(industry.id)}
-										className={cn(
-											'flex items-center gap-3 p-3 rounded-xl border-2 transition-all',
-											'hover:border-primary/50 hover:bg-primary/5',
-											isSelected
-												? 'border-primary bg-primary/10'
-												: 'border-transparent bg-muted/50'
-										)}
-									>
-							<div className={cn(
-									'flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-lg shrink-0',
-									isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
-								)}>
-									<Icon className="h-5 w-5 shrink-0" />
-								</div>
-								<span className="font-medium text-sm truncate flex-1">{industry.name}</span>
-										{isSelected && (
-											<Check className="ml-auto h-4 w-4 text-primary shrink-0" />
-										)}
-									</button>
-								)
-							})}
-						</div>
+				{categories.length === 0 ? (
+					<div className="py-8 text-center text-muted-foreground">
+						<p>Keine Filterkategorien vorhanden.</p>
+						<p className="text-sm mt-1">Erstellen Sie Kategorien unter Admin → Filter.</p>
 					</div>
+				) : (
+					<div className="space-y-6 py-4">
+						{categories.map((category) => {
+							const CategoryIcon = getIcon(category.icon)
+							const selectedOptionId = tempSelections[category.id]
 
-					{/* Service Section */}
-					<div className="p-6">
-						<div className="flex items-center gap-2 mb-4">
-							<Briefcase className="h-5 w-5 text-primary" />
-							<h3 className="font-semibold">Service</h3>
-							{tempService && (
-								<Badge variant="secondary" className="ml-auto">
-									{services.find((s) => s.id === tempService)?.name}
-								</Badge>
-							)}
-						</div>
-						<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-							<button
-								type="button"
-								onClick={() => setTempService(null)}
-								className={cn(
-									'flex items-center gap-3 p-3 rounded-xl border-2 transition-all',
-									'hover:border-primary/50 hover:bg-primary/5',
-									!tempService
-										? 'border-primary bg-primary/10'
-										: 'border-transparent bg-muted/50'
-								)}
-							>
-								<div className={cn(
-									'flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-lg shrink-0',
-									!tempService ? 'bg-primary text-primary-foreground' : 'bg-muted'
-								)}>
-									<Briefcase className="h-5 w-5 shrink-0" />
-								</div>
-								<div className="text-left">
-									<p className="font-medium text-sm">Alle</p>
-									<p className="text-xs text-muted-foreground">Keine Filter</p>
-								</div>
-								{!tempService && (
-									<Check className="ml-auto h-4 w-4 text-primary" />
-								)}
-							</button>
-
-							{services.map((service) => {
-								const Icon = iconMap[service.icon] || Briefcase
-								const isSelected = tempService === service.id
-								return (
-									<button
-										key={service.id}
-										type="button"
-										onClick={() => setTempService(service.id)}
-										className={cn(
-											'flex items-center gap-3 p-3 rounded-xl border-2 transition-all',
-											'hover:border-primary/50 hover:bg-primary/5',
-											isSelected
-												? 'border-primary bg-primary/10'
-												: 'border-transparent bg-muted/50'
+							return (
+								<div key={category.id} className="space-y-3">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<CategoryIcon className="h-4 w-4 text-muted-foreground" />
+											<h3 className="font-semibold">{category.name}</h3>
+										</div>
+										{selectedOptionId && (
+											<span className="text-xs text-primary font-medium">
+												{category.options.find((o) => o.id === selectedOptionId)?.name}
+											</span>
 										)}
-									>
-							<div className={cn(
-									'flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-lg shrink-0',
-									isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
-								)}>
-									<Icon className="h-5 w-5 shrink-0" />
-								</div>
-								<span className="font-medium text-sm truncate flex-1">{service.name}</span>
-										{isSelected && (
-											<Check className="ml-auto h-4 w-4 text-primary shrink-0" />
-										)}
-									</button>
-								)
-							})}
-						</div>
-					</div>
-				</div>
+									</div>
 
-				<DialogFooter className="px-6 py-4 border-t bg-muted/30">
-					<div className="flex w-full gap-3">
-						<Button
-							variant="outline"
-							className="flex-1 h-12 rounded-xl"
-							onClick={() => setOpen(false)}
-						>
-							Abbrechen
-						</Button>
-						<Button
-							className="flex-1 h-12 rounded-xl"
-							onClick={handleApply}
-						>
-							<Check className="mr-2 h-4 w-4" />
-							Anwenden
-						</Button>
+									<div className="flex flex-wrap gap-2">
+										{/* "Alle" option */}
+										<button
+											type="button"
+											onClick={() => {
+												setTempSelections((prev) => {
+													const next = { ...prev }
+													delete next[category.id]
+													return next
+												})
+											}}
+											className={cn(
+												'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+												!selectedOptionId ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+											)}
+										>
+											Alle
+										</button>
+
+										{/* Existing options */}
+										{category.options.map((option) => {
+											const OptionIcon = getIcon(option.icon)
+											const isSelected = selectedOptionId === option.id
+
+											return (
+												<button
+													key={option.id}
+													type="button"
+													onClick={() => selectOption(category.id, option.id)}
+													className={cn(
+														'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+														isSelected
+															? 'bg-primary text-primary-foreground'
+															: 'bg-muted hover:bg-muted/80'
+													)}
+												>
+													<OptionIcon className="h-3.5 w-3.5" />
+													{option.name}
+												</button>
+											)
+										})}
+
+										{/* Create new option */}
+										{allowCreate && creatingForCategory !== category.id && (
+											<button
+												type="button"
+												onClick={() => {
+													setCreatingForCategory(category.id)
+													setNewOptionName('')
+													setNewOptionIcon('circle')
+												}}
+												className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-dashed"
+											>
+												<Plus className="h-3.5 w-3.5" />
+												Neu
+											</button>
+										)}
+									</div>
+
+									{/* Create new option form */}
+									{allowCreate && creatingForCategory === category.id && (
+										<div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+											<IconPicker value={newOptionIcon} onChange={setNewOptionIcon} />
+											<Input
+												placeholder="Neue Option..."
+												value={newOptionName}
+												onChange={(e) => setNewOptionName(e.target.value)}
+												className="flex-1 h-9"
+												onKeyDown={(e) => {
+													if (e.key === 'Enter') handleCreateOption(category.id)
+													if (e.key === 'Escape') setCreatingForCategory(null)
+												}}
+												autoFocus
+											/>
+											<Button
+												size="icon"
+												className="h-9 w-9"
+												onClick={() => handleCreateOption(category.id)}
+												disabled={isPending || !newOptionName.trim()}
+											>
+												{isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+											</Button>
+											<Button
+												size="icon"
+												variant="ghost"
+												className="h-9 w-9"
+												onClick={() => setCreatingForCategory(null)}
+											>
+												<X className="h-4 w-4" />
+											</Button>
+										</div>
+									)}
+
+									{category.options.length === 0 && creatingForCategory !== category.id && !allowCreate && (
+										<p className="text-xs text-muted-foreground">Keine Optionen vorhanden</p>
+									)}
+								</div>
+							)
+						})}
 					</div>
+				)}
+
+				<DialogFooter>
+					<DialogClose asChild>
+						<Button variant="outline">Abbrechen</Button>
+					</DialogClose>
+					<Button onClick={handleApply}>
+						Filter anwenden
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
