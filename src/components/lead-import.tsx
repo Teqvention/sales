@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileSpreadsheet, Check, AlertCircle } from 'lucide-react'
+import { Upload, FileSpreadsheet, Check, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -125,6 +125,12 @@ export function LeadImport({ categories: initialCategories }: LeadImportProps) {
 				)
 				setImportedCount(result.count)
 				setSuccessOpen(true)
+
+				// Auto close after 2 seconds
+				setTimeout(() => {
+					setSuccessOpen(false)
+				}, 2000)
+
 				setParsedLeads([])
 				setFilename('')
 				setSelectedOptions({})
@@ -139,19 +145,16 @@ export function LeadImport({ categories: initialCategories }: LeadImportProps) {
 		<div className="space-y-6">
 			{/* Success dialog */}
 			<Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Check className="h-5 w-5 text-success" />
-							Import erfolgreich
-						</DialogTitle>
-					</DialogHeader>
-					<p className="py-4">
-						{importedCount} Leads wurden erfolgreich importiert.
-					</p>
-					<DialogFooter>
-						<Button onClick={() => setSuccessOpen(false)}>Schließen</Button>
-					</DialogFooter>
+				<DialogContent className="sm:max-w-[425px]">
+					<div className="flex flex-col items-center justify-center py-6 text-center animate-in zoom-in-50 duration-500">
+						<div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+							<CheckCircle2 className="h-8 w-8" />
+						</div>
+						<h3 className="text-xl font-semibold mb-2">Import erfolgreich!</h3>
+						<p className="text-muted-foreground max-w-[300px]">
+							{importedCount} Leads wurden erfolgreich importiert.
+						</p>
+					</div>
 				</DialogContent>
 			</Dialog>
 
