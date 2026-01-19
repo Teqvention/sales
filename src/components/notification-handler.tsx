@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { getPendingNotifications, markNotificationsAsRead } from '@/app/actions/notifications'
+import { getPendingNotifications } from '@/app/actions/notifications'
 import type { Notification } from '@prisma/client'
 
 type ToastType = 'info' | 'success' | 'warning' | 'error'
@@ -14,50 +14,57 @@ interface NotificationHandlerProps {
 
 export function NotificationHandler({ userId }: NotificationHandlerProps) {
     const router = useRouter()
-    const hasFetched = useRef(false)
+    const lastKnownIdsRef = useRef<Set<string>>(new Set())
+    const isFirstLoadRef = useRef(true)
 
     useEffect(() => {
-        // Prevent duplicate fetches from React StrictMode or re-renders
-        if (hasFetched.current) return
-        hasFetched.current = true
-
         async function loadNotifications() {
             try {
                 const notifications = await getPendingNotifications(userId)
+                const currentIds = new Set(notifications.map((n) => n.id))
 
-                if (notifications.length === 0) return
+                // Get already shown notifications from session storage to prevent duplicate toasts
+                const shownIds: string[] = JSON.parse(sessionStorage.getItem('shown_notifications') || '[]')
+                const shownIdsSet = new Set(shownIds)
 
-                // Get already shown notifications from session storage to prevent duplicates on refresh
-                const shownIds = JSON.parse(sessionStorage.getItem('shown_notifications') || '[]')
-                const newNotifications = notifications.filter((n) => !shownIds.includes(n.id))
+                // Find truly new notifications (not in session storage AND not in our last known set)
+                const newNotifications = notifications.filter(
+                    (n) => !shownIdsSet.has(n.id) && !lastKnownIdsRef.current.has(n.id)
+                )
 
-                if (newNotifications.length === 0) return
+                // Only refresh if we have new notifications AND it's not the first load
+                // (first load already has fresh data from the server layout)
+                if (newNotifications.length > 0 && !isFirstLoadRef.current) {
+                    router.refresh()
+                }
 
-                // Trigger server revalidation to update badge in sidebar
-                // This is needed because Sidebar is a server component getting data from layout
-                router.refresh()
+                // Show toasts for new notifications
+                if (newNotifications.length > 0) {
+                    newNotifications.forEach((notification: Notification, index: number) => {
+                        const notificationType = notification.type as ToastType
+                        const toastFn = {
+                            info: toast.info,
+                            success: toast.success,
+                            warning: toast.warning,
+                            error: toast.error,
+                        }[notificationType] || toast.info
 
-                // Show toasts with staggered delays
-                newNotifications.forEach((notification: Notification, index: number) => {
-                    const notificationType = notification.type as ToastType
-                    const toastFn = {
-                        info: toast.info,
-                        success: toast.success,
-                        warning: toast.warning,
-                        error: toast.error,
-                    }[notificationType] || toast.info
+                        setTimeout(() => {
+                            toastFn(notification.title, {
+                                description: notification.message,
+                                duration: 6000,
+                            })
+                        }, index * 300)
+                    })
 
-                    setTimeout(() => {
-                        toastFn(notification.title, {
-                            description: notification.message,
-                            duration: 6000,
-                        })
-                    }, index * 300)
-                })
+                    // Mark as shown in session storage
+                    const newShownIds = [...shownIds, ...newNotifications.map((n) => n.id)]
+                    sessionStorage.setItem('shown_notifications', JSON.stringify(newShownIds))
+                }
 
-                // Mark as shown in session storage but NOT as read in DB (so badge stays)
-                const newShownIds = [...shownIds, ...newNotifications.map((n) => n.id)]
-                sessionStorage.setItem('shown_notifications', JSON.stringify(newShownIds))
+                // Update our tracking of known IDs
+                lastKnownIdsRef.current = currentIds
+                isFirstLoadRef.current = false
 
             } catch (error) {
                 console.error('Failed to load notifications:', error)
@@ -67,11 +74,11 @@ export function NotificationHandler({ userId }: NotificationHandlerProps) {
         // Initial load
         loadNotifications()
 
-        // Poll every 10 seconds for new notifications
-        const interval = setInterval(loadNotifications, 10000)
+        // Poll every 30 seconds for new notifications (reduced frequency)
+        const interval = setInterval(loadNotifications, 30000)
 
         return () => clearInterval(interval)
-    }, [userId])
+    }, [userId, router])
 
     return null
 }
