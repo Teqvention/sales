@@ -37,15 +37,15 @@ const themes = [
 ] as const
 
 const colors = [
-	{ id: 'blue', label: 'Blau', hsl: '217', tailwind: 'bg-blue-500' },
-	{ id: 'violet', label: 'Violett', hsl: '263', tailwind: 'bg-violet-500' },
-	{ id: 'pink', label: 'Pink', hsl: '330', tailwind: 'bg-pink-500' },
-	{ id: 'red', label: 'Rot', hsl: '0', tailwind: 'bg-red-500' },
-	{ id: 'orange', label: 'Orange', hsl: '25', tailwind: 'bg-orange-500' },
-	{ id: 'yellow', label: 'Gelb', hsl: '48', tailwind: 'bg-yellow-500' },
-	{ id: 'green', label: 'Grün', hsl: '142', tailwind: 'bg-green-500' },
-	{ id: 'teal', label: 'Türkis', hsl: '168', tailwind: 'bg-teal-500' },
-	{ id: 'cyan', label: 'Cyan', hsl: '189', tailwind: 'bg-cyan-500' },
+	{ id: 'blue', label: 'Blau', oklch: 'oklch(0.623 0.214 259.1)', tailwind: 'bg-blue-500' },
+	{ id: 'violet', label: 'Violett', oklch: 'oklch(0.606 0.25 292.7)', tailwind: 'bg-violet-500' },
+	{ id: 'pink', label: 'Pink', oklch: 'oklch(0.656 0.241 354.3)', tailwind: 'bg-pink-500' },
+	{ id: 'red', label: 'Rot', oklch: 'oklch(0.637 0.237 25.3)', tailwind: 'bg-red-500' },
+	{ id: 'orange', label: 'Orange', oklch: 'oklch(0.705 0.191 47.6)', tailwind: 'bg-orange-500' },
+	{ id: 'yellow', label: 'Gelb', oklch: 'oklch(0.795 0.184 86.0)', tailwind: 'bg-yellow-500' },
+	{ id: 'green', label: 'Grün', oklch: 'oklch(0.723 0.219 149.6)', tailwind: 'bg-green-500' },
+	{ id: 'teal', label: 'Türkis', oklch: 'oklch(0.704 0.14 182.5)', tailwind: 'bg-teal-500' },
+	{ id: 'cyan', label: 'Cyan', oklch: 'oklch(0.715 0.143 215.2)', tailwind: 'bg-cyan-500' },
 ] as const
 
 export function SettingsContent({ user }: SettingsContentProps) {
@@ -95,10 +95,10 @@ export function SettingsContent({ user }: SettingsContentProps) {
 
 		const color = colors.find((c) => c.id === colorId)
 		if (color) {
-			document.documentElement.style.setProperty('--primary', `oklch(0.58 0.22 ${color.hsl})`)
-			document.documentElement.style.setProperty('--ring', `oklch(0.58 0.22 ${color.hsl})`)
-			document.documentElement.style.setProperty('--sidebar-primary', `oklch(0.58 0.22 ${color.hsl})`)
-			document.documentElement.style.setProperty('--sidebar-ring', `oklch(0.58 0.22 ${color.hsl})`)
+			document.documentElement.style.setProperty('--primary', color.oklch)
+			document.documentElement.style.setProperty('--ring', color.oklch)
+			document.documentElement.style.setProperty('--sidebar-primary', color.oklch)
+			document.documentElement.style.setProperty('--sidebar-ring', color.oklch)
 		}
 	}
 

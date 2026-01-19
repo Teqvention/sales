@@ -3,15 +3,15 @@
 import { useEffect } from 'react'
 
 const colorMap: Record<string, string> = {
-	blue: '255',
-	violet: '270',
-	pink: '330',
-	red: '0',
-	orange: '25',
-	yellow: '45',
-	green: '145',
-	teal: '175',
-	cyan: '195',
+	blue: 'oklch(0.623 0.214 259.1)',
+	violet: 'oklch(0.606 0.25 292.7)',
+	pink: 'oklch(0.656 0.241 354.3)',
+	red: 'oklch(0.637 0.237 25.3)',
+	orange: 'oklch(0.705 0.191 47.6)',
+	yellow: 'oklch(0.795 0.184 86.0)',
+	green: 'oklch(0.723 0.219 149.6)',
+	teal: 'oklch(0.704 0.14 182.5)',
+	cyan: 'oklch(0.715 0.143 215.2)',
 }
 
 export function ThemeInitializer() {
@@ -30,11 +30,11 @@ export function ThemeInitializer() {
 		// Initialize color
 		const savedColor = localStorage.getItem('primaryColor')
 		if (savedColor && colorMap[savedColor]) {
-			const hsl = colorMap[savedColor]
-			root.style.setProperty('--primary', `oklch(0.58 0.22 ${hsl})`)
-			root.style.setProperty('--ring', `oklch(0.58 0.22 ${hsl})`)
-			root.style.setProperty('--sidebar-primary', `oklch(0.58 0.22 ${hsl})`)
-			root.style.setProperty('--sidebar-ring', `oklch(0.58 0.22 ${hsl})`)
+			const oklch = colorMap[savedColor]
+			root.style.setProperty('--primary', oklch)
+			root.style.setProperty('--ring', oklch)
+			root.style.setProperty('--sidebar-primary', oklch)
+			root.style.setProperty('--sidebar-ring', oklch)
 		}
 
 		// Listen for system theme changes
