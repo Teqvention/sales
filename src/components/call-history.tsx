@@ -26,7 +26,7 @@ interface CallHistoryListProps {
 
 const outcomeConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Phone }> = {
     NO_ANSWER: { label: 'Nicht erreicht', variant: 'outline', icon: PhoneOff },
-    NO_INTEREST: { label: 'Kein Interesse', variant: 'destructive', icon: ThumbsDown },
+    NO_INTEREST: { label: 'Kein Interesse', variant: 'outline', icon: ThumbsDown },
     BOOKED: { label: 'Termin vereinbart', variant: 'default', icon: Calendar },
     SCHEDULED: { label: 'Rückruf geplant', variant: 'secondary', icon: Calendar },
 }
@@ -93,7 +93,10 @@ export function CallHistoryList({ calls }: CallHistoryListProps) {
                                             {call.lead.phone}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={config.variant} className="gap-1 font-normal">
+                                            <Badge
+                                                variant={config.variant}
+                                                className={`gap-1 font-normal ${call.outcome === 'NO_INTEREST' ? 'border-destructive/50 text-destructive' : ''}`}
+                                            >
                                                 <OutcomeIcon className="h-3 w-3" />
                                                 {config.label}
                                             </Badge>
