@@ -45,7 +45,7 @@ export function CallHistoryList({ calls }: CallHistoryListProps) {
     return (
         <Card className="border shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <CardTitle className="text-base">Letzte Anrufe ({filteredCalls.length})</CardTitle>
+                <CardTitle className="text-base font-normal">Letzte Anrufe ({filteredCalls.length})</CardTitle>
                 <div className="relative w-64">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
