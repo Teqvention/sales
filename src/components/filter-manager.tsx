@@ -133,7 +133,7 @@ export function FilterManager({ categories: initialCategories }: FilterManagerPr
                 const option = await createFilterOption(categoryId, newOptionName.trim(), newOptionIcon)
                 setCategories((prev) =>
                     prev.map((c) =>
-                        c.id === categoryId ? { ...c, options: [...c.options, option] } : c
+                        c.id === categoryId ? { ...c, options: [...c.options, option as unknown as FilterCategory['options'][number]] } : c
                     )
                 )
                 setNewOptionName('')
@@ -155,7 +155,7 @@ export function FilterManager({ categories: initialCategories }: FilterManagerPr
                 setCategories((prev) =>
                     prev.map((c) => ({
                         ...c,
-                        options: c.options.map((o) => (o.id === updated.id ? updated : o)),
+                        options: c.options.map((o) => (o.id === updated.id ? updated as unknown as FilterCategory['options'][number] : o)),
                     }))
                 )
                 setEditingOption(null)
