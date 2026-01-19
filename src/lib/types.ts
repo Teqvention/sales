@@ -6,27 +6,48 @@ export type CallOutcome = 'NO_ANSWER' | 'NO_INTEREST' | 'BOOKED'
 
 export type AppointmentStatus = 'BOOKED' | 'CONVERTED' | 'CANCELLED'
 
-export interface Industry {
+// Dynamic Filter System
+export interface FilterCategory {
 	id: string
 	name: string
 	icon: string
+	sortOrder: number
+	options: FilterOption[]
+	createdAt: Date
+	updatedAt: Date
 }
 
-export interface Service {
+export interface FilterOption {
 	id: string
+	categoryId: string
 	name: string
 	icon: string
+	sortOrder: number
+	createdAt: Date
+	category?: FilterCategory
+}
+
+export interface LeadFilterValue {
+	id: string
+	leadId: string
+	optionId: string
+	option: FilterOption & { category: FilterCategory }
+}
+
+export interface Call {
+	id: string
+	leadId: string
+	userId: string
+	outcome: string
+	createdAt: Date
 }
 
 export interface Lead {
 	id: string
 	companyName: string
 	phone: string
-	industryId: string | null
-	serviceId: string | null
 	status: LeadStatus
-	industry?: Industry | null
-	service?: Service | null
+	filterValues: LeadFilterValue[]
 	createdAt: Date
 	updatedAt: Date
 }

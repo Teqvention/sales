@@ -77,28 +77,49 @@ model Verification {
   @@map("verification")
 }
 
-model Industry {
-  id    String @id @default(cuid())
-  name  String @unique
-  icon  String @default("building")
-  leads Lead[]
+// Dynamic Filter System
+model FilterCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String   @default("filter")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  options   FilterOption[]
 }
 
-model Service {
-  id    String @id @default(cuid())
-  name  String @unique
-  icon  String @default("briefcase")
-  leads Lead[]
+model FilterOption {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   FilterCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  icon       String   @default("circle")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  
+  leadValues LeadFilterValue[]
+  
+  @@unique([categoryId, name])
+  @@index([categoryId])
+}
+
+model LeadFilterValue {
+  id       String @id @default(cuid())
+  leadId   String
+  lead     Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  optionId String
+  option   FilterOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  
+  @@unique([leadId, optionId])
+  @@index([leadId])
+  @@index([optionId])
 }
 
 model Lead {
   id          String   @id @default(cuid())
   companyName String
   phone       String
-  industryId  String?
-  industry    Industry? @relation(fields: [industryId], references: [id])
-  serviceId   String?
-  service     Service?  @relation(fields: [serviceId], references: [id])
   // Status: OPEN, NO_ANSWER, NO_INTEREST, BOOKED, CONVERTED
   status      String   @default("OPEN")
   importBatchId String?
@@ -106,12 +127,11 @@ model Lead {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  filterValues LeadFilterValue[]
   calls        Call[]
   appointments Appointment[]
 
   @@index([status])
-  @@index([industryId])
-  @@index([serviceId])
   @@index([importBatchId])
 }
 

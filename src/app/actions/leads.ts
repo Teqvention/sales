@@ -6,23 +6,35 @@ import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache'
 import type { Lead, LeadStatus, CallOutcome } from '@/lib/types'
 
 export async function getNextLead(
-	industryId?: string | null,
-	serviceId?: string | null
+	filterOptionIds?: string[]
 ): Promise<Lead | null> {
 	await requireAuth()
 
-	const where: Record<string, unknown> = {
-		status: 'OPEN',
+	// Build the where clause for leads with optional filter matching
+	let leadWhere: Record<string, unknown> = { status: 'OPEN' }
+
+	if (filterOptionIds && filterOptionIds.length > 0) {
+		// Find leads that have ALL the specified filter options
+		leadWhere = {
+			...leadWhere,
+			AND: filterOptionIds.map((optionId) => ({
+				filterValues: {
+					some: { optionId },
+				},
+			})),
+		}
 	}
 
-	if (industryId) where.industryId = industryId
-	if (serviceId) where.serviceId = serviceId
-
 	const lead = await db.lead.findFirst({
-		where,
+		where: leadWhere,
 		include: {
-			industry: true,
-			service: true,
+			filterValues: {
+				include: {
+					option: {
+						include: { category: true },
+					},
+				},
+			},
 		},
 		orderBy: { createdAt: 'asc' },
 	})
@@ -36,8 +48,13 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 	const lead = await db.lead.findUnique({
 		where: { id },
 		include: {
-			industry: true,
-			service: true,
+			filterValues: {
+				include: {
+					option: {
+						include: { category: true },
+					},
+				},
+			},
 		},
 	})
 
@@ -47,21 +64,34 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 // Internal cached function
 const _getCachedLeads = unstable_cache(
 	async (filters?: {
-		industryId?: string
-		serviceId?: string
+		optionIds?: string[]
 		status?: LeadStatus
 	}) => {
-		const where: Record<string, unknown> = {}
+		let where: Record<string, unknown> = {}
 
-		if (filters?.industryId) where.industryId = filters.industryId
-		if (filters?.serviceId) where.serviceId = filters.serviceId
 		if (filters?.status) where.status = filters.status
+
+		if (filters?.optionIds && filters.optionIds.length > 0) {
+			where = {
+				...where,
+				AND: filters.optionIds.map((optionId) => ({
+					filterValues: {
+						some: { optionId },
+					},
+				})),
+			}
+		}
 
 		const leads = await db.lead.findMany({
 			where,
 			include: {
-				industry: true,
-				service: true,
+				filterValues: {
+					include: {
+						option: {
+							include: { category: true },
+						},
+					},
+				},
 			},
 			orderBy: { createdAt: 'desc' },
 		})
@@ -77,8 +107,7 @@ const _getCachedLeads = unstable_cache(
 
 export async function getLeads(
 	filters?: {
-		industryId?: string
-		serviceId?: string
+		optionIds?: string[]
 		status?: LeadStatus
 	}
 ): Promise<Lead[]> {
@@ -101,6 +130,9 @@ export async function recordCall(
 
 	const lead = await db.lead.findUnique({
 		where: { id: leadId },
+		include: {
+			filterValues: true,
+		},
 	})
 
 	if (!lead) {
@@ -121,17 +153,39 @@ export async function recordCall(
 		}),
 	])
 
-	revalidateTag('leads-list', 'default')
+	revalidateTag('leads-list')
 	revalidatePath('/calling')
 	revalidatePath('/dashboard')
 
-	// If not booked, return next lead
+	// If not booked, return next lead with same filters
 	if (outcome !== 'BOOKED') {
-		const nextLead = await getNextLead(lead.industryId, lead.serviceId)
+		const optionIds = lead.filterValues.map((fv) => fv.optionId)
+		const nextLead = await getNextLead(optionIds.length > 0 ? optionIds : undefined)
 		return { success: true, nextLead }
 	}
 
 	return { success: true }
+}
+
+export async function getUserCallHistory(userId?: string) {
+	const currentUser = await requireAuth()
+	const targetUserId = userId || currentUser.id
+
+	// If asking for another user's history, check admin role
+	if (userId && userId !== currentUser.id) {
+		await requireAdmin()
+	}
+
+	const calls = await db.call.findMany({
+		where: { userId: targetUserId },
+		include: {
+			lead: true,
+		},
+		orderBy: { createdAt: 'desc' },
+		take: 50, // Limit to last 50 calls
+	})
+
+	return calls
 }
 
 export async function markAsConverted(leadId: string): Promise<void> {
@@ -173,7 +227,7 @@ export async function markAsConverted(leadId: string): Promise<void> {
 		})
 	}
 
-	revalidateTag('leads-list', 'default')
+	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -192,7 +246,7 @@ export async function unconvertLead(leadId: string): Promise<void> {
 		}),
 	])
 
-	revalidateTag('leads-list', 'default')
+	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -202,19 +256,36 @@ export async function updateLead(
 	data: {
 		companyName?: string
 		phone?: string
-		industryId?: string | null
-		serviceId?: string | null
 		status?: LeadStatus
-	}
+	},
+	optionIds?: string[]
 ): Promise<void> {
 	await requireAdmin()
 
-	await db.lead.update({
-		where: { id: leadId },
-		data,
+	await db.$transaction(async (tx) => {
+		await tx.lead.update({
+			where: { id: leadId },
+			data,
+		})
+
+		// Update filter values if provided
+		if (optionIds !== undefined) {
+			await tx.leadFilterValue.deleteMany({
+				where: { leadId },
+			})
+
+			if (optionIds.length > 0) {
+				await tx.leadFilterValue.createMany({
+					data: optionIds.map((optionId) => ({
+						leadId,
+						optionId,
+					})),
+				})
+			}
+		}
 	})
 
-	revalidateTag('leads-list', 'default')
+	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
@@ -226,15 +297,14 @@ export async function deleteLead(leadId: string): Promise<void> {
 		where: { id: leadId },
 	})
 
-	revalidateTag('leads-list', 'default')
+	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 	revalidatePath('/admin/dashboard')
 }
 
 export async function importLeads(
 	leads: Array<{ companyName: string; phone: string }>,
-	industryId: string | null,
-	serviceId: string | null,
+	optionIds: string[],
 	filename: string
 ): Promise<{ count: number }> {
 	await requireAdmin()
@@ -246,17 +316,32 @@ export async function importLeads(
 		},
 	})
 
-	await db.lead.createMany({
-		data: leads.map((lead) => ({
-			companyName: lead.companyName,
-			phone: lead.phone,
-			industryId,
-			serviceId,
-			importBatchId: batch.id,
-		})),
-	})
+	// Create leads
+	const createdLeads = await Promise.all(
+		leads.map((lead) =>
+			db.lead.create({
+				data: {
+					companyName: lead.companyName,
+					phone: lead.phone,
+					importBatchId: batch.id,
+				},
+			})
+		)
+	)
 
-	revalidateTag('leads-list', 'default')
+	// Assign filter options to all created leads
+	if (optionIds.length > 0) {
+		await db.leadFilterValue.createMany({
+			data: createdLeads.flatMap((lead) =>
+				optionIds.map((optionId) => ({
+					leadId: lead.id,
+					optionId,
+				}))
+			),
+		})
+	}
+
+	revalidateTag('leads-list')
 	revalidatePath('/admin/leads')
 
 	return { count: leads.length }
