@@ -8,8 +8,13 @@ export async function GET() {
 
 		const leads = await db.lead.findMany({
 			include: {
-				industry: true,
-				service: true,
+				filterValues: {
+					include: {
+						option: {
+							include: { category: true },
+						},
+					},
+				},
 			},
 			orderBy: { createdAt: 'desc' },
 		})
@@ -20,19 +25,33 @@ export async function GET() {
 			NO_INTEREST: 'Kein Interesse',
 			BOOKED: 'Gebucht',
 			CONVERTED: 'Converted',
+			CALLBACK: 'Rückruf',
 		}
 
-		const rows = leads.map((lead) => ({
-			Firma: lead.companyName,
-			Telefon: lead.phone,
-			Branche: lead.industry?.name || '',
-			Service: lead.service?.name || '',
-			Status: statusLabels[lead.status] || lead.status,
-			'Erstellt am': lead.createdAt.toISOString().split('T')[0],
-		}))
+		const rows = leads.map((lead) => {
+			// Group filter values by category
+			const filters: Record<string, string[]> = {}
+			lead.filterValues.forEach((fv) => {
+				const categoryName = fv.option.category.name
+				if (!filters[categoryName]) {
+					filters[categoryName] = []
+				}
+				filters[categoryName].push(fv.option.name)
+			})
+
+			return {
+				Firma: lead.companyName,
+				Telefon: lead.phone,
+				Filter: Object.entries(filters)
+					.map(([cat, opts]) => `${cat}: ${opts.join(', ')}`)
+					.join(' | '),
+				Status: statusLabels[lead.status] || lead.status,
+				'Erstellt am': lead.createdAt.toISOString().split('T')[0],
+			}
+		})
 
 		// Create CSV
-		const headers = Object.keys(rows[0] || {})
+		const headers = rows.length > 0 ? Object.keys(rows[0]) : ['Firma', 'Telefon', 'Filter', 'Status', 'Erstellt am']
 		const csv = [
 			headers.join(';'),
 			...rows.map((row) =>
