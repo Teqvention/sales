@@ -371,6 +371,16 @@ export async function deleteLead(leadId: string): Promise<void> {
 	revalidatePath('/admin/dashboard')
 }
 
+export async function deleteAllLeads(): Promise<void> {
+	await requireAdmin()
+
+	await db.lead.deleteMany({})
+
+	revalidateTag('leads-list')
+	revalidatePath('/admin/leads')
+	revalidatePath('/admin/dashboard')
+}
+
 export async function importLeads(
 	leads: Array<{ companyName: string; phone: string }>,
 	optionIds: string[],

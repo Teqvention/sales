@@ -46,7 +46,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DynamicFilterSelector } from '@/components/category-selector'
 import { getIcon } from '@/components/icon-picker'
-import { markAsConverted, unconvertLead, updateLead, deleteLead } from '@/app/actions/leads'
+import { markAsConverted, unconvertLead, updateLead, deleteLead, deleteAllLeads } from '@/app/actions/leads'
 import type { Lead, FilterCategory, LeadStatus } from '@/lib/types'
 
 interface LeadManagementProps {
@@ -74,6 +74,7 @@ export function LeadManagement({
 	const [editingLead, setEditingLead] = useState<Lead | null>(null)
 	const [editingOptions, setEditingOptions] = useState<Record<string, string>>({})
 	const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null)
+	const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
 
 	// Status priority for sorting: CONVERTED > BOOKED > OPEN > NO_ANSWER > NO_INTEREST
 	const statusOrder: Record<string, number> = {
@@ -130,6 +131,14 @@ export function LeadManagement({
 		startTransition(async () => {
 			await deleteLead(leadId)
 			setDeleteLeadId(null)
+			router.refresh()
+		})
+	}
+
+	function handleDeleteAll() {
+		startTransition(async () => {
+			await deleteAllLeads()
+			setShowDeleteAllConfirm(false)
 			router.refresh()
 		})
 	}
@@ -215,6 +224,16 @@ export function LeadManagement({
 						)
 					)}
 				</div>
+
+				<Button
+					variant="destructive"
+					size="sm"
+					className="ml-auto"
+					onClick={() => setShowDeleteAllConfirm(true)}
+				>
+					<Trash2 className="mr-2 h-4 w-4" />
+					Alle löschen
+				</Button>
 			</div>
 
 			{/* Edit Dialog */}
@@ -330,6 +349,34 @@ export function LeadManagement({
 							disabled={isPending}
 						>
 							{isPending ? 'Wird gelöscht...' : 'Löschen'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete All Confirmation Dialog */}
+			<Dialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Alle Leads löschen?</DialogTitle>
+					</DialogHeader>
+					<p className="py-4 text-sm text-muted-foreground">
+						Möchten Sie wirklich <strong>ALLE Leads</strong> löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+					</p>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowDeleteAllConfirm(false)}
+							disabled={isPending}
+						>
+							Abbrechen
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={handleDeleteAll}
+							disabled={isPending}
+						>
+							{isPending ? 'Wird gelöscht...' : 'Alles löschen'}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
