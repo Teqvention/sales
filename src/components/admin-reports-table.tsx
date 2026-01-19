@@ -21,6 +21,7 @@ import {
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
     MoreHorizontal,
@@ -96,101 +97,106 @@ export function AdminReportsTable({ reports }: AdminReportsTableProps) {
     }
 
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Benutzer</TableHead>
-                        <TableHead>Typ</TableHead>
-                        <TableHead>Betreff</TableHead>
-                        <TableHead>Erstellt</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {reports.map((report) => {
-                        const status = statusConfig[report.status] || statusConfig.OPEN
-                        const StatusIcon = status.icon
-                        return (
-                            <TableRow key={report.id}>
-                                <TableCell>
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={report.user?.image || ''} />
-                                            <AvatarFallback>
-                                                {report.user?.name?.slice(0, 2).toUpperCase() || '??'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-sm">{report.user?.name}</span>
-                                            <span className="text-xs text-muted-foreground">{report.user?.email}</span>
+        <Card className="border shadow-none">
+            <CardHeader>
+                <CardTitle className="text-base">Berichte ({reports.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Benutzer</TableHead>
+                            <TableHead>Typ</TableHead>
+                            <TableHead>Betreff</TableHead>
+                            <TableHead>Erstellt</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {reports.map((report) => {
+                            const status = statusConfig[report.status] || statusConfig.OPEN
+                            const StatusIcon = status.icon
+                            return (
+                                <TableRow key={report.id}>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={report.user?.image || ''} />
+                                                <AvatarFallback>
+                                                    {report.user?.name?.slice(0, 2).toUpperCase() || '??'}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-sm">{report.user?.name}</span>
+                                                <span className="text-xs text-muted-foreground">{report.user?.email}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant={report.type === 'bug' ? 'destructive' : 'secondary'}>
-                                        {report.type === 'bug' ? 'Fehler' : 'Feedback'}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col max-w-[300px]">
-                                        <span className="font-medium truncate">{report.subject}</span>
-                                        <span className="text-xs text-muted-foreground truncate">
-                                            {report.description}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {formatDistanceToNow(new Date(report.createdAt), {
-                                        addSuffix: true,
-                                        locale: de,
-                                    })}
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant={status.variant} className="gap-1">
-                                        <StatusIcon className="h-3 w-3" />
-                                        {status.label}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuSub>
-                                                <DropdownMenuSubTrigger>Status ändern</DropdownMenuSubTrigger>
-                                                <DropdownMenuSubContent>
-                                                    <DropdownMenuRadioGroup
-                                                        value={report.status}
-                                                        onValueChange={(value) => handleStatusChange(report.id, value)}
-                                                    >
-                                                        {Object.entries(statusConfig).map(([key, config]) => (
-                                                            <DropdownMenuRadioItem key={key} value={key}>
-                                                                {config.label}
-                                                            </DropdownMenuRadioItem>
-                                                        ))}
-                                                    </DropdownMenuRadioGroup>
-                                                </DropdownMenuSubContent>
-                                            </DropdownMenuSub>
-                                            <DropdownMenuItem
-                                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                onClick={() => handleDelete(report.id)}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Löschen
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                        )
-                    })}
-                </TableBody>
-            </Table>
-        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={report.type === 'bug' ? 'destructive' : 'secondary'}>
+                                            {report.type === 'bug' ? 'Fehler' : 'Feedback'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col max-w-[300px]">
+                                            <span className="font-medium truncate">{report.subject}</span>
+                                            <span className="text-xs text-muted-foreground truncate">
+                                                {report.description}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">
+                                        {formatDistanceToNow(new Date(report.createdAt), {
+                                            addSuffix: true,
+                                            locale: de,
+                                        })}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={status.variant} className="gap-1">
+                                            <StatusIcon className="h-3 w-3" />
+                                            {status.label}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuSub>
+                                                    <DropdownMenuSubTrigger>Status ändern</DropdownMenuSubTrigger>
+                                                    <DropdownMenuSubContent>
+                                                        <DropdownMenuRadioGroup
+                                                            value={report.status}
+                                                            onValueChange={(value) => handleStatusChange(report.id, value)}
+                                                        >
+                                                            {Object.entries(statusConfig).map(([key, config]) => (
+                                                                <DropdownMenuRadioItem key={key} value={key}>
+                                                                    {config.label}
+                                                                </DropdownMenuRadioItem>
+                                                            ))}
+                                                        </DropdownMenuRadioGroup>
+                                                    </DropdownMenuSubContent>
+                                                </DropdownMenuSub>
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                    onClick={() => handleDelete(report.id)}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Löschen
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     )
 }

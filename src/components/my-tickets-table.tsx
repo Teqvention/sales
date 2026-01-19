@@ -16,6 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -68,62 +69,68 @@ export function MyTicketsTable({ tickets }: MyTicketsTableProps) {
 
     return (
         <>
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Typ</TableHead>
-                            <TableHead>Betreff</TableHead>
-                            <TableHead>Erstellt</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="w-[80px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {tickets.map((ticket) => {
-                            const status = statusConfig[ticket.status] || statusConfig.OPEN
-                            const StatusIcon = status.icon
-                            const TypeIcon = ticket.type === 'bug' ? Bug : MessageSquare
-                            return (
-                                <TableRow key={ticket.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                                            <Badge variant={ticket.type === 'bug' ? 'destructive' : 'secondary'}>
-                                                {ticket.type === 'bug' ? 'Fehler' : 'Feedback'}
+            <Card className="border shadow-none">
+                <CardHeader>
+                    <CardTitle className="text-base">Tickets ({tickets.length})</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Typ</TableHead>
+                                <TableHead>Betreff</TableHead>
+                                <TableHead>Erstellt</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {tickets.map((ticket) => {
+                                const status = statusConfig[ticket.status] || statusConfig.OPEN
+                                const StatusIcon = status.icon
+                                const TypeIcon = ticket.type === 'bug' ? Bug : MessageSquare
+                                return (
+                                    <TableRow key={ticket.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <TypeIcon className="h-4 w-4 text-muted-foreground" />
+                                                <Badge variant={ticket.type === 'bug' ? 'destructive' : 'secondary'}>
+                                                    {ticket.type === 'bug' ? 'Fehler' : 'Feedback'}
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-medium">{ticket.subject}</span>
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {formatDistanceToNow(new Date(ticket.createdAt), {
+                                                addSuffix: true,
+                                                locale: de,
+                                            })}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={status.variant} className="gap-1">
+                                                <StatusIcon className="h-3 w-3" />
+                                                {status.label}
                                             </Badge>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="font-medium">{ticket.subject}</span>
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {formatDistanceToNow(new Date(ticket.createdAt), {
-                                            addSuffix: true,
-                                            locale: de,
-                                        })}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={status.variant} className="gap-1">
-                                            <StatusIcon className="h-3 w-3" />
-                                            {status.label}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setSelectedTicket(ticket)}
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSelectedTicket(ticket)}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+
+                    </Table>
+                </CardContent>
+            </Card >
 
             <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
                 <DialogContent className="sm:max-w-lg">
