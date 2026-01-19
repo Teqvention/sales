@@ -23,6 +23,7 @@ const outcomeConfig: Record<string, { label: string; variant: 'default' | 'secon
     NO_ANSWER: { label: 'Nicht erreicht', variant: 'outline', icon: PhoneOff },
     NO_INTEREST: { label: 'Kein Interesse', variant: 'destructive', icon: ThumbsDown },
     BOOKED: { label: 'Termin vereinbart', variant: 'default', icon: Calendar },
+    SCHEDULED: { label: 'Rückruf geplant', variant: 'secondary', icon: Calendar },
 }
 
 export function CallHistoryList({ calls }: CallHistoryListProps) {
