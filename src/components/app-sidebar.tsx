@@ -54,6 +54,7 @@ interface AppSidebarProps {
 
 const employeeNav = [
 	{ title: 'Anrufen', href: '/calling', icon: Phone },
+	{ title: 'Anrufliste', href: '/calls', icon: List },
 	{ title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 ]
 
