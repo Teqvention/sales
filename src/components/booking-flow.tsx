@@ -2,35 +2,33 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Check, ArrowLeft, ExternalLink } from 'lucide-react'
+import { Calendar, Check, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { createAppointment } from '@/app/actions/appointments'
 import type { Lead } from '@/lib/types'
 
 interface BookingFlowProps {
 	lead: Lead
+	userName: string
+	userEmail: string
 }
 
-export function BookingFlow({ lead }: BookingFlowProps) {
+// Cal.com base URL
+const CALCOM_BASE_URL = 'https://cal.com/teqvention-meeting/15min'
+
+export function BookingFlow({ lead, userName, userEmail }: BookingFlowProps) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [step, setStep] = useState<'booking' | 'success'>('booking')
-	const [scheduledDate, setScheduledDate] = useState('')
-	const [scheduledTime, setScheduledTime] = useState('')
+	const [iframeLoaded, setIframeLoaded] = useState(false)
 
-	// Cal.com URL - can be configured via env
-	const calcomUrl = process.env.NEXT_PUBLIC_CALCOM_URL || ''
+	// Build Cal.com embed URL with pre-filled user data
+	const calcomEmbedUrl = `${CALCOM_BASE_URL}?embed=true&theme=auto&hideEventTypeDetails=false&name=${encodeURIComponent(userName)}&email=${encodeURIComponent(userEmail)}`
 
-	function handleConfirmBooking() {
+	function handleConfirmCalcomBooking() {
 		startTransition(async () => {
-			const scheduledAt = scheduledDate && scheduledTime
-				? new Date(`${scheduledDate}T${scheduledTime}`)
-				: undefined
-
-			await createAppointment(lead.id, undefined, scheduledAt)
+			await createAppointment(lead.id, undefined, undefined)
 			setStep('success')
 		})
 	}
@@ -41,7 +39,7 @@ export function BookingFlow({ lead }: BookingFlowProps) {
 
 	if (step === 'success') {
 		return (
-			<Card className="w-full max-w-md border">
+			<Card className="w-full max-w-2xl border">
 				<CardContent className="pt-8 text-center">
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
 						<Check className="h-8 w-8 text-success" />
@@ -62,8 +60,8 @@ export function BookingFlow({ lead }: BookingFlowProps) {
 	}
 
 	return (
-		<Card className="w-full max-w-md border">
-			<CardHeader>
+		<Card className="w-full max-w-2xl border">
+			<CardHeader className="pb-4">
 				<Button
 					variant="ghost"
 					size="sm"
@@ -73,70 +71,57 @@ export function BookingFlow({ lead }: BookingFlowProps) {
 					<ArrowLeft className="mr-2 h-4 w-4" />
 					Abbrechen
 				</Button>
-				<CardTitle className="flex items-center gap-2">
-					<Calendar className="h-5 w-5 text-primary" />
-					Termin buchen
-				</CardTitle>
+				<div className="flex items-center justify-between">
+					<CardTitle className="flex items-center gap-2">
+						<Calendar className="h-5 w-5 text-primary" />
+						Termin buchen für {lead.companyName}
+					</CardTitle>
+				</div>
 			</CardHeader>
-			<CardContent className="space-y-6">
-				{/* Lead info */}
-				<div className="rounded-xl bg-muted p-4">
-					<p className="font-medium">{lead.companyName}</p>
-					<p className="text-sm text-muted-foreground">{lead.phone}</p>
+			<CardContent className="space-y-4">
+				{/* Cal.com Embed */}
+				<div className="relative rounded-xl border bg-background overflow-hidden" style={{ minHeight: '500px' }}>
+					{!iframeLoaded && (
+						<div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+							<div className="flex flex-col items-center gap-2">
+								<Loader2 className="h-8 w-8 animate-spin text-primary" />
+								<p className="text-sm text-muted-foreground">Kalender wird geladen...</p>
+							</div>
+						</div>
+					)}
+					<iframe
+						src={calcomEmbedUrl}
+						className="w-full h-full border-0"
+						style={{ minHeight: '500px' }}
+						onLoad={() => setIframeLoaded(true)}
+						title="Cal.com Terminbuchung"
+						allow="payment"
+					/>
 				</div>
 
-				{/* Cal.com link if configured */}
-				{calcomUrl && (
-					<div className="space-y-2">
-						<Label>Über Cal.com buchen</Label>
-						<Button
-							variant="outline"
-							className="w-full touch-target justify-between"
-							asChild
-						>
-							<a
-								href={calcomUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								Cal.com öffnen
-								<ExternalLink className="h-4 w-4" />
-							</a>
-						</Button>
-					</div>
-				)}
-
-				{/* Manual date/time entry */}
-				<div className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="date">Datum (optional)</Label>
-						<Input
-							id="date"
-							type="date"
-							value={scheduledDate}
-							onChange={(e) => setScheduledDate(e.target.value)}
-							className="h-12"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="time">Uhrzeit (optional)</Label>
-						<Input
-							id="time"
-							type="time"
-							value={scheduledTime}
-							onChange={(e) => setScheduledTime(e.target.value)}
-							className="h-12"
-						/>
-					</div>
+				{/* Confirm booking button */}
+				<div className="flex flex-col gap-2">
+					<Button
+						className="w-full touch-target-lg text-base font-medium h-12"
+						onClick={handleConfirmCalcomBooking}
+						disabled={isPending}
+					>
+						{isPending ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Wird gespeichert...
+							</>
+						) : (
+							<>
+								<Check className="mr-2 h-5 w-5" />
+								Termin abschließen
+							</>
+						)}
+					</Button>
+					<p className="text-xs text-center text-muted-foreground">
+						Wählen Sie oben einen Termin und klicken Sie dann auf &quot;Termin abschließen&quot;
+					</p>
 				</div>
-
-				<Button
-					className="w-full touch-target-lg text-base font-medium"
-					onClick={handleConfirmBooking}
-					disabled={isPending}
-				>
-					{isPending ? 'Wird gespeichert...' : 'Termin bestätigen'}
-				</Button>
 			</CardContent>
 		</Card>
 	)
