@@ -202,19 +202,13 @@ export function AppSidebar({ user, unreadCount = 0 }: AppSidebarProps) {
 							Einstellungen
 						</DropdownMenuItem>
 						<DropdownMenuItem
-							onClick={() => setFeedbackOpen(true)}
-							className="gap-2 rounded-lg"
-						>
-							<MessageSquarePlus className="h-4 w-4" />
-							Feedback & Hilfe
-						</DropdownMenuItem>
-						<DropdownMenuItem
 							onClick={() => router.push('/support')}
 							className="gap-2 rounded-lg"
 						>
-							<Ticket className="h-4 w-4" />
-							Meine Tickets
+							<MessageSquarePlus className="h-4 w-4" />
+							Feedback & Reports
 						</DropdownMenuItem>
+
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							onClick={handleLogout}

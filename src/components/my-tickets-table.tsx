@@ -26,7 +26,19 @@ import {
     Circle,
     Clock,
     CheckCircle2,
+    FolderOpen,
+    ArrowUpRight,
+    Plus,
 } from 'lucide-react'
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty'
+import { FeedbackDialog } from '@/components/feedback-dialog'
 import { formatDistanceToNow } from 'date-fns'
 import { de } from 'date-fns/locale'
 
@@ -52,26 +64,41 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 
 export function MyTicketsTable({ tickets }: MyTicketsTableProps) {
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+    const [feedbackOpen, setFeedbackOpen] = useState(false)
 
     if (tickets.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                    <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Keine Tickets vorhanden</h3>
-                <p className="text-muted-foreground max-w-sm">
-                    Sie haben noch keine Support-Tickets erstellt. Nutzen Sie &quot;Feedback &amp; Hilfe&quot; im Benutzermenü, um ein Ticket zu erstellen.
-                </p>
-            </div>
+            <>
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <FolderOpen />
+                        </EmptyMedia>
+                        <EmptyTitle>Keine Tickets vorhanden</EmptyTitle>
+                        <EmptyDescription>
+                            Sie haben noch keine Support-Tickets erstellt. Erstellen Sie jetzt Ihr erstes Ticket.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                        <Button onClick={() => setFeedbackOpen(true)}>
+                            Ticket erstellen
+                        </Button>
+                    </EmptyContent>
+                </Empty>
+                <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+            </>
         )
     }
 
     return (
         <>
             <Card className="border shadow-none">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle className="text-base">Tickets ({tickets.length})</CardTitle>
+                    <Button size="sm" onClick={() => setFeedbackOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ticket erstellen
+                    </Button>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
@@ -170,6 +197,7 @@ export function MyTicketsTable({ tickets }: MyTicketsTableProps) {
                     </div>
                 </DialogContent>
             </Dialog>
+            <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
         </>
     )
 }
