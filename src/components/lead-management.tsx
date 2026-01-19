@@ -14,6 +14,7 @@ import {
 	Trash2,
 	RotateCcw,
 	ChevronDown,
+	Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,6 +60,7 @@ const statusConfig: Record<LeadStatus, { label: string; variant: 'default' | 'se
 	NO_INTEREST: { label: 'Kein Interesse', variant: 'destructive', icon: X },
 	BOOKED: { label: 'Gebucht', variant: 'default', icon: Calendar },
 	CONVERTED: { label: 'Converted', variant: 'default', icon: Award },
+	CALLBACK: { label: 'Rückruf', variant: 'default', icon: Clock },
 }
 
 export function LeadManagement({
