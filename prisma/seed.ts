@@ -120,7 +120,17 @@ async function main() {
 	await createUser('demo@rufhammer.de', 'demo123', 'Demo User', 'EMPLOYEE')
 	console.log('Created demo user')
 
-	// Create industries
+	// Create Industry Category
+	const industryCategory = await db.filterCategory.upsert({
+		where: { name: 'Branche' },
+		update: {},
+		create: {
+			name: 'Branche',
+			icon: 'briefcase', // generic icon
+			sortOrder: 1,
+		},
+	})
+
 	const industries = [
 		{ name: 'Handwerk', icon: 'hammer' },
 		{ name: 'IT & Software', icon: 'laptop' },
@@ -132,16 +142,38 @@ async function main() {
 		{ name: 'Bildung', icon: 'graduation-cap' },
 	]
 
-	for (const industry of industries) {
-		await db.industry.upsert({
-			where: { name: industry.name },
-			update: { icon: industry.icon },
-			create: industry,
+	const industryOptions = []
+	for (const [index, item] of industries.entries()) {
+		const option = await db.filterOption.upsert({
+			where: {
+				categoryId_name: {
+					categoryId: industryCategory.id,
+					name: item.name
+				}
+			},
+			update: { icon: item.icon },
+			create: {
+				categoryId: industryCategory.id,
+				name: item.name,
+				icon: item.icon,
+				sortOrder: index,
+			},
 		})
+		industryOptions.push(option)
 	}
 	console.log('Created industries')
 
-	// Create services
+	// Create Service Category
+	const serviceCategory = await db.filterCategory.upsert({
+		where: { name: 'Dienstleistung' },
+		update: {},
+		create: {
+			name: 'Dienstleistung',
+			icon: 'wrench',
+			sortOrder: 2,
+		},
+	})
+
 	const services = [
 		{ name: 'Chatbot', icon: 'message-square' },
 		{ name: 'Automatisierung', icon: 'bot' },
@@ -151,19 +183,28 @@ async function main() {
 		{ name: 'E-Mail Marketing', icon: 'mail' },
 	]
 
-	for (const service of services) {
-		await db.service.upsert({
-			where: { name: service.name },
-			update: { icon: service.icon },
-			create: service,
+	const serviceOptions = []
+	for (const [index, item] of services.entries()) {
+		const option = await db.filterOption.upsert({
+			where: {
+				categoryId_name: {
+					categoryId: serviceCategory.id,
+					name: item.name
+				}
+			},
+			update: { icon: item.icon },
+			create: {
+				categoryId: serviceCategory.id,
+				name: item.name,
+				icon: item.icon,
+				sortOrder: index,
+			},
 		})
+		serviceOptions.push(option)
 	}
 	console.log('Created services')
 
 	// Create sample leads
-	const industryRecords = await db.industry.findMany()
-	const serviceRecords = await db.service.findMany()
-
 	// Only create leads if none exist
 	const leadCount = await db.lead.count()
 	if (leadCount === 0) {
@@ -180,16 +221,23 @@ async function main() {
 			{ companyName: 'Klein Steuerberatung', phone: '+49 151 0123456' },
 		]
 
-		for (const lead of sampleLeads) {
-			const industry = industryRecords[Math.floor(Math.random() * industryRecords.length)]
-			const service = serviceRecords[Math.floor(Math.random() * serviceRecords.length)]
+		for (const leadData of sampleLeads) {
+			const randomIndustry = industryOptions[Math.floor(Math.random() * industryOptions.length)]
+			const randomService = serviceOptions[Math.floor(Math.random() * serviceOptions.length)]
 
-			await db.lead.create({
+			const lead = await db.lead.create({
 				data: {
-					...lead,
-					industryId: industry.id,
-					serviceId: service.id,
+					...leadData,
+					status: 'OPEN',
 				},
+			})
+
+			// Assign filter values
+			await db.leadFilterValue.create({
+				data: { leadId: lead.id, optionId: randomIndustry.id }
+			})
+			await db.leadFilterValue.create({
+				data: { leadId: lead.id, optionId: randomService.id }
 			})
 		}
 		console.log('Created sample leads')

@@ -27,6 +27,7 @@ model User {
   appointments Appointment[]
   feedback     Feedback[]
   notifications Notification[]
+  assignedLeads Lead[] @relation("AssignedLeads")
 
   @@map("user")
 }
@@ -130,6 +131,12 @@ model Lead {
   filterValues LeadFilterValue[]
   calls        Call[]
   appointments Appointment[]
+  
+  // Callback / Scheduling
+  nextCallAt    DateTime?
+  nextCallNotes String?
+  assignedUserId String?
+  assignedUser   User?    @relation("AssignedLeads", fields: [assignedUserId], references: [id])
 
   @@index([status])
   @@index([importBatchId])

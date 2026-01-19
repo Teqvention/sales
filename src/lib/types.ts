@@ -1,8 +1,8 @@
 export type Role = 'ADMIN' | 'EMPLOYEE'
 
-export type LeadStatus = 'OPEN' | 'NO_ANSWER' | 'NO_INTEREST' | 'BOOKED' | 'CONVERTED'
+export type LeadStatus = 'OPEN' | 'NO_ANSWER' | 'NO_INTEREST' | 'BOOKED' | 'CONVERTED' | 'CALLBACK'
 
-export type CallOutcome = 'NO_ANSWER' | 'NO_INTEREST' | 'BOOKED'
+export type CallOutcome = 'NO_ANSWER' | 'NO_INTEREST' | 'BOOKED' | 'SCHEDULED'
 
 export type AppointmentStatus = 'BOOKED' | 'CONVERTED' | 'CANCELLED'
 
@@ -50,6 +50,9 @@ export interface Lead {
 	filterValues: LeadFilterValue[]
 	createdAt: Date
 	updatedAt: Date
+	nextCallAt?: Date | null
+	nextCallNotes?: string | null
+	assignedUserId?: string | null
 }
 
 export interface User {

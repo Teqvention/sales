@@ -8,10 +8,40 @@ import type { Lead, LeadStatus, CallOutcome } from '@/lib/types'
 export async function getNextLead(
 	filterOptionIds?: string[]
 ): Promise<Lead | null> {
-	await requireAuth()
+	const user = await requireAuth()
 
+	// 1. Check for due callbacks assigned to this user
+	const dueCallback = await db.lead.findFirst({
+		where: {
+			status: 'CALLBACK',
+			assignedUserId: user.id,
+			nextCallAt: {
+				lte: new Date(), // Due now or in the past
+			},
+		},
+		include: {
+			filterValues: {
+				include: {
+					option: {
+						include: { category: true },
+					},
+				},
+			},
+		},
+		orderBy: { nextCallAt: 'asc' },
+	})
+
+	if (dueCallback) {
+		return dueCallback as Lead | null
+	}
+
+	// 2. Normal pool logic (status OPEN, and NOT assigned to a specific user for callback - though status CALLBACK handles that)
 	// Build the where clause for leads with optional filter matching
-	let leadWhere: Record<string, unknown> = { status: 'OPEN' }
+	let leadWhere: Record<string, unknown> = {
+		status: 'OPEN',
+		// Ensure we don't pick up leads that are technically open but assigned (if generic assignment exists in future)
+		// For now, OPEN implies pool.
+	}
 
 	if (filterOptionIds && filterOptionIds.length > 0) {
 		// Find leads that have ALL the specified filter options
@@ -40,6 +70,44 @@ export async function getNextLead(
 	})
 
 	return lead as Lead | null
+}
+
+export async function scheduleCallback(
+	leadId: string,
+	date: Date,
+	notes: string
+): Promise<{ success: boolean }> {
+	const user = await requireAuth()
+
+	await db.$transaction([
+		db.lead.update({
+			where: { id: leadId },
+			data: {
+				status: 'CALLBACK',
+				assignedUserId: user.id,
+				nextCallAt: date,
+				nextCallNotes: notes,
+			},
+		}),
+		db.call.create({
+			data: {
+				leadId,
+				userId: user.id,
+				outcome: 'SCHEDULED',
+			},
+		}),
+	])
+
+	revalidateTag('leads-list')
+	revalidatePath('/calling')
+
+	const lead = await db.lead.findUnique({
+		where: { id: leadId },
+		include: { filterValues: true }
+	})
+
+	// Return next lead
+	return { success: true }
 }
 
 export async function getLeadById(id: string): Promise<Lead | null> {
@@ -126,6 +194,7 @@ export async function recordCall(
 		NO_ANSWER: 'NO_ANSWER',
 		NO_INTEREST: 'NO_INTEREST',
 		BOOKED: 'BOOKED',
+		SCHEDULED: 'CALLBACK',
 	}
 
 	const lead = await db.lead.findUnique({

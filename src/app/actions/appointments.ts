@@ -40,8 +40,13 @@ export async function getAppointments(userId?: string) {
 		include: {
 			lead: {
 				include: {
-					industry: true,
-					service: true,
+					filterValues: {
+						include: {
+							option: {
+								include: { category: true }
+							}
+						}
+					}
 				},
 			},
 			user: {
